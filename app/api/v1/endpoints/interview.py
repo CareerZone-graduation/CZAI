@@ -8,7 +8,7 @@ router = APIRouter()
 async def chat(request: ChatRequest):
     try:
         response = await llm_service.generate_response(
-            request.sessionId, request.message, request.isStart
+            request.sessionId, request.message, request.isStart, request.topic
         )
         return {"response": response}
     except Exception as e:
