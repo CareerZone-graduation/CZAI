@@ -4,11 +4,10 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "CareerZoneAI Backend"
 
-    ELEVENLABS_API_KEY: str 
     
     # API KEYS
+    ELEVENLABS_API_KEY: str 
     ASSEMBLYAI_API_KEY: str
-    GEMINI_API_KEY: str
     GITHUB_TOKEN: str
     SIMLI_API_KEY: str
     
