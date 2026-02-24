@@ -1,8 +1,15 @@
-from google import genai
+import os
+import urllib.parse
+from openai import OpenAI
 from app.core.config import settings
 
-# Initialize Gemini Client
-client = genai.Client(api_key=settings.GEMINI_API_KEY)
+# Initialize OpenAI Client pointing to GitHub Models
+client = None
+if settings.GITHUB_TOKEN:
+    client = OpenAI(
+        base_url="https://models.github.ai/inference",
+        api_key=settings.GITHUB_TOKEN
+    )
 
 def get_interviewer_prompt(topic: str = None) -> str:
     """Generate interviewer prompt based on topic"""
@@ -12,11 +19,11 @@ def get_interviewer_prompt(topic: str = None) -> str:
 
 QUY TẮC:
 1. Trả lời NGẮN GỌN (1-2 câu), tự nhiên như đang nói chuyện
-2. Đặt câu hỏi rõ ràng, cụ thể
-3. Lắng nghe và phản hồi dựa trên câu trả lời của ứng viên
-4. Thể hiện sự quan tâm và khuyến khích ứng viên
-5. Sử dụng tiếng Việt tự nhiên, có thể thêm từ ngữ thân thiện, hoặc các hiệu ứng giọng nói, ví dụ: [haha]...
-6. Quan trọng: tuyệt đối không được quá 15 từ trong mỗi câu hỏi hoặc phản hồi."""
+2. Không dùng markdown, emoji, hoặc ký tự đặc biệt.
+3. Khi muốn thể hiện cảm xúc, dùng tag tiếng Anh: [laughs], [sighs], [chuckles], [gasps].
+4. Đặt câu hỏi rõ ràng, cụ thể
+5. Lắng nghe và phản hồi dựa trên câu trả lời của ứng viên
+6. Trả lời bằng tiếng Việt."""
     
     # Topic-specific content
     if topic and topic.strip():
@@ -50,16 +57,15 @@ Hãy bắt đầu phỏng vấn một cách tự nhiên!"""
     
     return base_prompt + topic_content
 
-# Default prompt for backward compatibility
-INTERVIEWER_PROMPT = get_interviewer_prompt()
-
 # Lưu trữ session trong bộ nhớ (Tương tự Map trong JS)
-# Trong production nên dùng Redis
 interview_sessions = {}
 # Lưu trữ topic cho mỗi session
 interview_topics = {}
 
 async def generate_response(session_id: str, message: str, is_start: bool = False, topic: str = None):
+    if not client:
+        raise ValueError("GitHub Token for LLM is not set!")
+        
     if session_id not in interview_sessions:
         interview_sessions[session_id] = []
     
@@ -73,23 +79,30 @@ async def generate_response(session_id: str, message: str, is_start: bool = Fals
     
     history = interview_sessions[session_id]
     
+    if len(history) == 0:
+        history.append({"role": "system", "content": current_prompt})
+    
     if is_start:
         topic_text = f" về chủ đề \"{session_topic}\"" if session_topic else ""
-        prompt = f"{current_prompt}\n\nHãy bắt đầu cuộc phỏng vấn{topic_text} với lời chào... Thêm [haha] ở đầu để thêm sinh động"
+        prompt = f"Hãy bắt đầu cuộc phỏng vấn{topic_text} với lời chào... Thêm [chuckles] ở đầu để thêm sinh động"
     else:
-        # Convert history objects to string format if needed, assuming they are dicts
-        history_text = "\n".join([f"{h['role']}: {h['content']}" for h in history])
-        prompt = f"{current_prompt}\n\nLịch sử hội thoại:\n{history_text}\n\nỨng viên: {message}\n\nPhỏng vấn viên (trả lời ngắn gọn 1-2 câu):"
+        prompt = message
+        
+    history.append({"role": "user", "content": prompt})
     
-    response = await client.aio.models.generate_content(
-        model='gemini-flash-latest',
-        contents=prompt
+    # Make sync call to OpenAI wrapper
+    response = client.chat.completions.create(
+        messages=history,
+        temperature=1,
+        top_p=1,
+        model="gpt-4o"
     )
-    ai_text = response.text
     
-    if not is_start:
-        history.append({"role": "Ứng viên", "content": message})
-    history.append({"role": "Phỏng vấn viên", "content": ai_text})
+    ai_text = response.choices[0].message.content.strip()
+    history.append({"role": "assistant", "content": ai_text})
+    
+    print(f"[AI] User: {prompt}")
+    print(f"[AI] AI: {ai_text}")
     
     return ai_text
 

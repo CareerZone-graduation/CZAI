@@ -9,8 +9,7 @@ class Settings(BaseSettings):
     # API KEYS
     ASSEMBLYAI_API_KEY: str
     GEMINI_API_KEY: str
-    ELEVENLABS_VOICE_ID: str = "TX3LPaxmHKxFdv7VOQHJ"
-    DID_API_KEY: str
+    GITHUB_TOKEN: str
     
     # CLOUDINARY
     CLOUDINARY_CLOUD_NAME: str
