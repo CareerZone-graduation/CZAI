@@ -15,3 +15,7 @@ class EndInterviewRequest(BaseModel):
 
 class TranscribeRequest(BaseModel):
     audioData: str
+
+class SimliSessionRequest(BaseModel):
+    faceId: str
+    maxSessionLength: int = 3600

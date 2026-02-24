@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ASSEMBLYAI_API_KEY: str
     GEMINI_API_KEY: str
     GITHUB_TOKEN: str
+    SIMLI_API_KEY: str
     
     # CLOUDINARY
     CLOUDINARY_CLOUD_NAME: str

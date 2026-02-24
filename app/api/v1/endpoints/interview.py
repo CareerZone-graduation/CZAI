@@ -1,5 +1,6 @@
 import urllib.parse
 import requests
+import os
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from app.models.chat import ChatRequest, TTSRequest, EndInterviewRequest, TranscribeRequest
