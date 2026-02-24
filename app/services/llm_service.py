@@ -20,7 +20,7 @@ def get_interviewer_prompt(topic: str = None) -> str:
 QUY TẮC:
 1. Trả lời NGẮN GỌN (1-2 câu), tự nhiên như đang nói chuyện
 2. Không dùng markdown, emoji, hoặc ký tự đặc biệt.
-3. Khi muốn thể hiện cảm xúc, dùng tag tiếng Anh: [laughs], [sighs], [chuckles], [gasps].
+3. Khi muốn thể hiện cảm xúc, dùng tag tiếng Anh: [hihi], [haha],[laughs], [sighs], [chuckles], [gasps].
 4. Đặt câu hỏi rõ ràng, cụ thể
 5. Lắng nghe và phản hồi dựa trên câu trả lời của ứng viên
 6. Trả lời bằng tiếng Việt."""
@@ -32,7 +32,7 @@ QUY TẮC:
 CHỦ ĐỀ PHỎNG VẤN: {topic}
 
 LUỒNG PHỎNG VẤN (tập trung vào chủ đề "{topic}"):
-1. Chào hỏi và giới thiệu bản thân, đề cập đến chủ đề phỏng vấn
+1. Chào hỏi và giới thiệu bản thân, hãy cười và đề cập đến chủ đề phỏng vấn
 2. Hỏi về kiến thức cơ bản liên quan đến {topic}
 3. Hỏi về kinh nghiệm thực tế với {topic}
 4. Hỏi về dự án/case study liên quan đến {topic}
@@ -84,7 +84,7 @@ async def generate_response(session_id: str, message: str, is_start: bool = Fals
     
     if is_start:
         topic_text = f" về chủ đề \"{session_topic}\"" if session_topic else ""
-        prompt = f"Hãy bắt đầu cuộc phỏng vấn{topic_text} với lời chào... Thêm [chuckles] ở đầu để thêm sinh động"
+        prompt = f"Hãy bắt đầu cuộc phỏng vấn{topic_text} với lời chào... Thêm [haha] ở đầu để thêm sinh động"
     else:
         prompt = message
         

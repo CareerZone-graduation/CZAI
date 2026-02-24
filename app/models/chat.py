@@ -6,6 +6,7 @@ class ChatRequest(BaseModel):
     message: str = ""
     isStart: bool = False
     topic: Optional[str] = None  # Interview topic for focused questions
+    avatarType: Optional[str] = "live2d"
 
 class TTSRequest(BaseModel):
     text: str

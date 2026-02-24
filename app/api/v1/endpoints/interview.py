@@ -18,7 +18,11 @@ async def chat(request: ChatRequest):
         )
         
         # 2. Xử lý stream audio từ ElevenLabs cho dạng PCM16
-        voice_id = "pNInz6obpgDQGcFmaJgB"
+        if request.avatarType == "simli":
+            voice_id = "EXAVITQu4vr4xnSDxMaL"
+        else:
+            voice_id = "pNInz6obpgDQGcFmaJgB"
+        
         tts_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream?output_format=pcm_16000"
         
         tts_headers = {
