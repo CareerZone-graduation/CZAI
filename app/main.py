@@ -24,5 +24,5 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    # Should likely change port if running alongside Node.js, but replacing it means reusing 3001
-    uvicorn.run("app.main:app", host="0.0.0.0", port=3001, reload=True)
+    # Should likely change port if running alongside Node.js, but replacing it means reusing 8000
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

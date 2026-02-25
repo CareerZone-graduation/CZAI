@@ -10,7 +10,8 @@ class Settings(BaseSettings):
     ASSEMBLYAI_API_KEY: str
     GITHUB_TOKEN: str
     SIMLI_API_KEY: str
-    
+    GEMINI_API_KEY: str
+    INTERNAL_API_KEY: str = "careerzone_internal_secret_key"
     # CLOUDINARY
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
