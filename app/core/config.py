@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     SIMLI_API_KEY: str
     GEMINI_API_KEY: str
     INTERNAL_API_KEY: str = "careerzone_internal_secret_key"
+    # MongoDB
+    MONGO_URI: str = ""
     # CLOUDINARY
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
