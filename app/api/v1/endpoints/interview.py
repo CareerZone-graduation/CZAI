@@ -16,6 +16,8 @@ async def chat(request: ChatRequest):
         ai_text = await llm_service.generate_response(
             request.sessionId, request.message, request.isStart, request.topic
         )
+        # debug only
+        # ai_text = "tôi có thể giúp gì cho bạn nhỉ, bạn cứ nói";
         
         # 2. Xử lý stream audio từ ElevenLabs cho dạng PCM16
         if request.avatarType == "simli":
@@ -45,11 +47,15 @@ async def chat(request: ChatRequest):
                 with requests.post(tts_url, json=tts_payload, headers=tts_headers, stream=True) as tts_response:
                     tts_response.raise_for_status()
                     total = 0
+                    chunk_count = 0
                     for chunk in tts_response.iter_content(chunk_size=4096):
                         if chunk:
                             total += len(chunk)
+                            chunk_count += 1
+                            if chunk_count % 10 == 0:
+                                print(f"[ElevenLabs] Streaming chunk {chunk_count}... ({total} bytes so far)")
                             yield chunk
-                    print(f"[ElevenLabs] Streamed {total} bytes of pcm 16000 audio")
+                    print(f"[ElevenLabs] Finished! Streamed total {total} bytes of pcm 16000 audio")
             except Exception as e:
                 print(f"[ElevenLabs Streaming Error]: {e}")
 
