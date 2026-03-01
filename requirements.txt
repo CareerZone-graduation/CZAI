@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 python-dotenv
 httpx
 google-genai
@@ -7,4 +7,10 @@ pydantic-settings
 python-multipart
 elevenlabs
 cloudinary
-pymongo
+motor
+lightfm-next
+numpy
+scipy
+apscheduler
+joblib
+unidecode

@@ -1,8 +1,10 @@
+import datetime
+from typing import Optional
+
+from bson import ObjectId
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
-from typing import Optional
-from bson import ObjectId
-import datetime
+
 from app.core.config import settings
 from app.core.database import get_db
 
@@ -10,7 +12,8 @@ router = APIRouter()
 
 
 class SimilarJobsRequest(BaseModel):
-    job_id: str = Field(..., description="Source job ID to find similar jobs for")
+    job_id: str = Field(...,
+                        description="Source job ID to find similar jobs for")
     limit: int = Field(default=6, ge=1, le=20, description="Number of results")
 
 
@@ -31,7 +34,7 @@ async def find_similar_jobs(
 ):
     """
     Find similar jobs by job ID using MongoDB Atlas $vectorSearch.
-    
+
     Flow:
     1. Fetch source job's embedding from MongoDB
     2. Calculate average embedding from chunks
@@ -52,7 +55,7 @@ async def find_similar_jobs(
         raise HTTPException(status_code=400, detail="Invalid job_id format")
 
     # 1. Fetch source job and its embeddings
-    job = jobs_collection.find_one(
+    job = await jobs_collection.find_one(
         {"_id": source_object_id},
         {"chunks": 1, "title": 1}
     )
@@ -106,7 +109,7 @@ async def find_similar_jobs(
         {"$limit": request.limit},
     ]
 
-    results = list(jobs_collection.aggregate(pipeline))
+    results = await jobs_collection.aggregate(pipeline).to_list(length=request.limit)
 
     return SimilarJobsResponse(
         data=[
