@@ -8,6 +8,10 @@ Hai chế độ:
      đánh giá trên tập test (offline evaluation, chính xác hơn).
 
 Metrics: Precision@K, Recall@K, AUC, MRR, Hit Rate@K, Coverage@K.
+
+Usage:
+  python -m app.services.recommendation.evaluator --mode current
+  python -m app.services.recommendation.evaluator --mode split --test-ratio 0.2 --k 10
 """
 
 from __future__ import annotations
@@ -193,6 +197,7 @@ def evaluate_current_model(k: int = DEFAULT_K) -> dict[str, Any]:
     if not weighted:
         return {"status": "error", "reason": "no_interactions"}
 
+    n_raw = len(weighted)
     user_id_map, _, item_id_map, _ = ds.mapping()
     data = [
         (uid, jid, w) for uid, jid, w in weighted
@@ -200,6 +205,15 @@ def evaluate_current_model(k: int = DEFAULT_K) -> dict[str, Any]:
     ]
     if not data:
         return {"status": "error", "reason": "no_interactions_after_filtering"}
+
+    n_filtered_out = n_raw - len(data)
+    if n_filtered_out > 0:
+        logger.warning(
+            "Filtered out %d / %d interactions (user/job not in model dataset). "
+            "This usually means new users/jobs appeared since last retrain, "
+            "or jobs became inactive.",
+            n_filtered_out, n_raw,
+        )
 
     interactions_mat, _ = ds.build_interactions(data)
     n_inter = len(data)
@@ -237,6 +251,8 @@ def evaluate_current_model(k: int = DEFAULT_K) -> dict[str, Any]:
         "mrr": round(_safe_mean(rr), 4),
         "n_users_evaluated": int(np.sum(np.isfinite(prec))),
         "n_interactions": n_inter,
+        "n_raw_interactions": n_raw,
+        "n_filtered_out": n_filtered_out,
         "elapsed_seconds": round(elapsed, 2),
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -295,6 +311,8 @@ def evaluate_train_test_split(
 
     known_job_ids = set(all_job_ids)
     known_user_ids = all_user_ids
+    n_train_before = len(train_data)
+    n_test_before = len(test_data)
     train_data = [
         (uid, jid, w) for uid, jid, w in train_data
         if uid in known_user_ids and jid in known_job_ids
@@ -303,6 +321,16 @@ def evaluate_train_test_split(
         (uid, jid, w) for uid, jid, w in test_data
         if uid in known_user_ids and jid in known_job_ids
     ]
+
+    n_filtered = (n_train_before - len(train_data)) + (n_test_before - len(test_data))
+    if n_filtered > 0:
+        logger.warning(
+            "Filtered out %d interactions referencing inactive/unknown jobs or users "
+            "(train: %d→%d, test: %d→%d)",
+            n_filtered,
+            n_train_before, len(train_data),
+            n_test_before, len(test_data),
+        )
 
     if not test_data:
         return {
@@ -326,10 +354,11 @@ def evaluate_train_test_split(
 
     user_feat_tuples = build_user_feature_tuples(candidates)
     item_feat_tuples = build_item_feature_tuples(jobs)
+    # normalize=True to match production model (model_manager._build_feature_matrices)
     user_features_mat = ds.build_user_features(
-        user_feat_tuples, normalize=False)
+        user_feat_tuples, normalize=True)
     item_features_mat = ds.build_item_features(
-        item_feat_tuples, normalize=False)
+        item_feat_tuples, normalize=True)
 
     eval_model = LightFM(
         no_components=settings.MODEL_NO_COMPONENTS,
@@ -400,6 +429,8 @@ def evaluate_train_test_split(
         "k": k,
         "n_train_interactions": len(train_data),
         "n_test_interactions": len(test_data),
+        "n_raw_interactions": len(weighted),
+        "n_filtered_out": n_filtered,
         "n_users": len(all_user_ids),
         "n_items": len(all_job_ids),
         f"test_precision@{k}": round(_safe_mean(prec), 4),
@@ -416,3 +447,39 @@ def evaluate_train_test_split(
 
     logger.info("═══ EVALUATION complete in %.2fs ═══", elapsed)
     return metrics
+
+
+if __name__ == "__main__":
+    import argparse
+    import asyncio
+    import json
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    parser = argparse.ArgumentParser(description="Đánh giá LightFM model")
+    parser.add_argument(
+        "--mode",
+        choices=["current", "split"],
+        default="current",
+        help="current = dùng model đã train; split = train/test split (default: current)",
+    )
+    parser.add_argument("--k", type=int, default=DEFAULT_K,
+                        help=f"Top-K (default: {DEFAULT_K})")
+    parser.add_argument("--test-ratio", type=float, default=DEFAULT_TEST_RATIO,
+                        help=f"Tỉ lệ test khi dùng mode=split (default: {DEFAULT_TEST_RATIO})")
+    args = parser.parse_args()
+
+    from app.core.database import connect_db, close_db
+
+    async def _main() -> None:
+        await connect_db()
+        try:
+            if args.mode == "current":
+                result = evaluate_current_model(k=args.k)
+            else:
+                result = evaluate_train_test_split(test_ratio=args.test_ratio, k=args.k)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        finally:
+            await close_db()
+
+    asyncio.run(_main())

@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     RETRAIN_HOUR: int = 2
     RETRAIN_MINUTE: int = 0
     PARTIAL_UPDATE_INTERVAL_MINUTES: int = 30
-    INTERACTION_DAYS: int = 30
+    INTERACTION_DAYS: int = 50
 
     # LightFM hyper-parameters
     MODEL_NO_COMPONENTS: int = 64

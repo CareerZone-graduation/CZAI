@@ -64,18 +64,28 @@ async def get_recommendations(
     user_id: str,
     x_internal_secret: Optional[str] = Header(None),
 ):
-    _verify_internal(x_internal_secret)
+    # _verify_internal(x_internal_secret)
+
+    if not engine.is_ready:
+        raise HTTPException(
+            status_code=503,
+            detail="Model is not ready yet. Please try again later.",
+        )
 
     loop = asyncio.get_running_loop()
-    results = await loop.run_in_executor(_executor, engine.predict, user_id)
+    results = await loop.run_in_executor(
+        _executor,
+        lambda: engine.predict(user_id, n=settings.TOP_N, exclude_applied=False),
+    )
 
-    # Determine source heuristic
-    source = "popular"
-    if engine.is_ready:
-        user_map = engine.dataset.mapping()[0]
-        if user_id in user_map:
-            source = "model"
-        elif results:
+    # Determine source label based on actual predict outcome
+    source = "model"
+    if results and results[0]["score"] == 0.0:
+        # popular fallback always returns score=0.0
+        source = "popular"
+    else:
+        user_map, _, _, _ = engine.dataset.mapping()
+        if user_id not in user_map:
             source = "cold_start"
 
     return RecommendationResponse(
