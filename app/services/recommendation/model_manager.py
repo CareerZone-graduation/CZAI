@@ -14,7 +14,7 @@ import joblib
 import numpy as np
 from lightfm import LightFM
 from lightfm.data import Dataset
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix
 
 from app.core.config import settings
 from app.services.recommendation.data_loader import (
@@ -238,14 +238,44 @@ class RecommendationEngine:
             self.dataset, valid_interactions
         )
 
+        # Enhance: Cộng dồn ma trận mới vào cumulative trước khi fit_partial.
+        #
+        # Nếu chỉ truyền interactions_mat (30 phút):
+        #   WARP loss coi mọi ô = 0 trong ma trận là Negative sample.
+        #   Toàn bộ interaction cũ (hôm qua, tuần trước) đều bằng 0 trong
+        #   ma trận 30-phút → mô hình chủ động phạt (unlearn) chúng.
+        #
+        # Ví dụ thảm họa: User A APPLY Backend Python sáng nay (weight 5.0).
+        #   Chiều VIEW DevOps → partial_update chỉ thấy DevOps > 0, còn
+        #   Backend Python = 0 → LightFM bốc Backend Python làm Negative
+        #   → đẩy score của Backend Python xuống dưới DevOps.
+        #
+        # Giải pháp: cộng dồn sparse matrix mới vào self.interactions_matrix
+        #   (tích lũy từ full_retrain) trước khi fit_partial.
+        cumul_interactions = (
+            csr_matrix(self.interactions_matrix) + csr_matrix(interactions_mat)
+        )
+        # Dùng maximum cho weights: tránh inflate trọng số khi cùng 1 cặp
+        # (user, job) xuất hiện nhiều lần trong khoảng partial window ngắn.
+        # Ví dụ: VIEW (1.0) cũ + APPLY (5.0) mới → giữ 5.0, không cộng 6.0.
+        cumul_weights = csr_matrix(self.weights_matrix).maximum(
+            csr_matrix(weights_mat)
+        )
+
         self.model.fit_partial(
-            interactions_mat,
+            cumul_interactions,
             user_features=self.user_features_matrix,
             item_features=self.item_features_matrix,
-            sample_weight=weights_mat,
+            sample_weight=cumul_weights,
             epochs=settings.MODEL_PARTIAL_EPOCHS,
             num_threads=settings.MODEL_NUM_THREADS,
         )
+
+        # Lưu lại cumulative để lần partial_update tiếp theo dùng tiếp.
+        # Khi server restart, load_from_disk() sẽ rebuild từ toàn bộ DB
+        # nên không cần persist 2 matrix này xuống disk.
+        self.interactions_matrix = cumul_interactions
+        self.weights_matrix = cumul_weights
 
         # Cập nhật applied_jobs tăng dần
         for uid, jids in new_applied.items():
@@ -301,6 +331,24 @@ class RecommendationEngine:
         Cold-start: user mới chưa có trong model.
         Tính user embedding thủ công từ profile features,
         rồi dot product với item embeddings để ra scores.
+
+        ⚠️  LƯU Ý — CODE NÀY CÓ RỦI RO "FRAGILE":
+        Toàn bộ phép tính bên dưới (mean embedding + dot product) chỉ đúng
+        khi đồng thời thỏa 3 điều kiện sau:
+          1. _build_feature_matrices() dùng normalize=True (hiện tại ở dòng ~78).
+             Nếu đổi sang normalize=False, công thức đúng phải là .sum(axis=0),
+             không phải .mean(axis=0) — sẽ sai im lặng, không có lỗi nào raise.
+          2. model.user_embeddings / model.user_biases là internal attribute của
+             LightFM. Thư viện không đảm bảo API ổn định cho các thuộc tính này;
+             nếu thư viện cập nhật cấu trúc nội bộ, code sẽ vỡ.
+          3. get_item_representations() cũng là semi-internal. Tương tự rủi ro trên.
+
+        ✅  GIẢI PHÁP AN TOÀN HƠN (nếu cần refactor sau này):
+        Xây csr_matrix 1 dòng với weight = 1/len(feat_indices) (replicate
+        normalize=True) rồi gọi model.predict(user_ids=0, item_ids=...,
+        user_features=new_user_sparse_matrix, item_features=...) trực tiếp —
+        để LightFM tự xử lý toàn bộ phép tính nội bộ, không cần chạm vào
+        user_embeddings hay get_item_representations().
         """
         logger.info("Cold-start prediction for user %s", user_id)
 
@@ -327,12 +375,14 @@ class RecommendationEngine:
             logger.info("No matching features for user %s", user_id)
             return self._popular_fallback(n)
 
-        feat_embeddings = self.model.user_embeddings[feat_indices]
+        # ⚠️  Chỉ đúng khi normalize=True (xem ghi chú trong docstring).
+        feat_embeddings = self.model.user_embeddings[feat_indices]  # internal API
         user_embedding = feat_embeddings.mean(axis=0)
-        user_bias = self.model.user_biases[feat_indices].mean()
+        user_bias = self.model.user_biases[feat_indices].mean()     # internal API
 
         _, _, item_map, _ = self.dataset.mapping()
 
+        # ⚠️  get_item_representations() là semi-internal API của LightFM.
         item_embeddings = self.model.get_item_representations(
             self.item_features_matrix)
         item_biases = item_embeddings[0]
