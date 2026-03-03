@@ -1,0 +1,3341 @@
+Directory structure:
+└── CZAI/
+    ├── README.md
+    ├── Dockerfile
+    ├── requirements.txt
+    ├── .env.example
+    ├── app/
+    │   ├── __init__.py
+    │   ├── main.py
+    │   ├── api/
+    │   │   ├── __init__.py
+    │   │   └── v1/
+    │   │       ├── router.py
+    │   │       └── endpoints/
+    │   │           ├── __init__.py
+    │   │           ├── embedding.py
+    │   │           ├── interview.py
+    │   │           ├── recommendation.py
+    │   │           ├── similar_jobs.py
+    │   │           └── simli.py
+    │   ├── core/
+    │   │   ├── __init__.py
+    │   │   ├── config.py
+    │   │   └── database.py
+    │   ├── models/
+    │   │   ├── __init__.py
+    │   │   ├── chat.py
+    │   │   ├── embedding.py
+    │   │   └── recommendation.py
+    │   ├── services/
+    │   │   ├── __init__.py
+    │   │   ├── cloudinary_service.py
+    │   │   ├── llm_service.py
+    │   │   ├── stt_service.py
+    │   │   ├── tts_service.py
+    │   │   └── recommendation/
+    │   │       ├── __init__.py
+    │   │       ├── data_loader.py
+    │   │       ├── evaluator.py
+    │   │       ├── feature_engineering.py
+    │   │       ├── model_manager.py
+    │   │       └── scheduler.py
+    │   └── utils/
+    │       ├── __init__.py
+    │       └── text_utils.py
+    ├── models/
+    │   ├── lightfm_dataset.joblib
+    │   ├── lightfm_matrices.joblib
+    │   ├── lightfm_meta.joblib
+    │   └── lightfm_model.joblib
+    └── scripts/
+        └── evaluate_model.py
+
+================================================
+FILE: README.md
+================================================
+# CareerZoneAI Backend
+
+Backend API cho CareerZoneAI - được xây dựng bằng FastAPI.
+
+## 🚀 Tính năng
+
+- API phỏng vấn với AI
+- Text-to-Speech (ElevenLabs)
+- Speech-to-Text (AssemblyAI)
+- AI Avatar (D-ID)
+- Lưu trữ media (Cloudinary)
+- Gemini AI cho xử lý ngôn ngữ tự nhiên
+
+## 📋 Yêu cầu
+
+- Python 3.10 trở lên
+- pip (Python package manager)
+
+## 🛠️ Cài đặt
+
+### 1. Clone repository
+
+```bash
+git clone https://github.com/your-username/CZAI.git
+cd CZAI
+```
+
+### 2. Tạo Virtual Environment (venv)
+
+**Windows (PowerShell):**
+```powershell
+# Tạo virtual environment
+python -m venv venv
+
+# Kích hoạt virtual environment
+.\venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+# Tạo virtual environment
+python -m venv venv
+
+# Kích hoạt virtual environment
+venv\Scripts\activate.bat
+```
+
+**Linux/macOS:**
+```bash
+# Tạo virtual environment
+python3 -m venv venv
+
+# Kích hoạt virtual environment
+source venv/bin/activate
+```
+
+> 💡 Khi virtual environment được kích hoạt, bạn sẽ thấy `(venv)` xuất hiện ở đầu dòng lệnh.
+
+### 3. Cài đặt dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Cấu hình biến môi trường
+
+Tạo file `.env` trong thư mục gốc của project:
+
+```env
+# ElevenLabs - Text to Speech
+ELEVENLABS_API_KEY=your_elevenlabs_api_key
+ELEVENLABS_VOICE_ID=TX3LPaxmHKxFdv7VOQHJ
+
+# AssemblyAI - Speech to Text
+ASSEMBLYAI_API_KEY=your_assemblyai_api_key
+
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key
+
+# D-ID - AI Avatar
+DID_API_KEY=your_did_api_key
+
+# Cloudinary - Media Storage
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+## ▶️ Chạy ứng dụng
+
+### Chạy với Uvicorn
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Ứng dụng sẽ chạy tại: `http://localhost:8000`
+
+### Chạy với Docker
+
+```bash
+# Build image
+docker build -t czai-backend .
+
+# Chạy container
+docker run -p 8000:8000 --env-file .env czai-backend
+```
+
+## 📚 API Documentation
+
+Sau khi chạy ứng dụng, truy cập:
+
+- **Swagger UI:** `http://localhost:3001/docs`
+- **ReDoc:** `http://localhost:3001/redoc`
+
+## 📁 Cấu trúc Project
+
+```
+CZAI/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # Entry point của ứng dụng
+│   ├── api/
+│   │   └── v1/
+│   │       ├── router.py    # API router chính
+│   │       └── endpoints/   # Các endpoint API
+│   │           ├── avatar.py
+│   │           └── interview.py
+│   ├── core/
+│   │   └── config.py        # Cấu hình ứng dụng
+│   ├── models/              # Pydantic models
+│   │   ├── chat.py
+│   │   └── did.py
+│   └── services/            # Business logic
+│       ├── cloudinary_service.py
+│       ├── did_service.py
+│       ├── llm_service.py
+│       ├── stt_service.py
+│       └── tts_service.py
+├── static/                  # Static files
+├── Dockerfile
+├── requirements.txt
+└── README.md
+```
+
+## 🔧 Các lệnh hữu ích
+
+### Tắt Virtual Environment
+
+```bash
+deactivate
+```
+
+### Cập nhật dependencies
+
+```bash
+pip install --upgrade -r requirements.txt
+```
+
+### Freeze dependencies hiện tại
+
+```bash
+pip freeze > requirements.txt
+```
+
+### Kiểm tra phiên bản Python trong venv
+
+```bash
+python --version
+```
+
+## 🐛 Xử lý lỗi thường gặp
+
+### Lỗi khi kích hoạt venv trên Windows PowerShell
+
+Nếu gặp lỗi về execution policy, chạy lệnh sau với quyền Administrator:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### Lỗi thiếu module
+
+```bash
+pip install <tên_module>
+```
+
+### Lỗi port đã được sử dụng
+
+Thay đổi port trong lệnh chạy:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## 📄 License
+
+MIT License
+
+## 👥 Đóng góp
+
+Mọi đóng góp đều được hoan nghênh! Vui lòng tạo Pull Request hoặc Issue.
+
+
+
+================================================
+FILE: Dockerfile
+================================================
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+RUN mkdir -p models
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+
+================================================
+FILE: requirements.txt
+================================================
+fastapi
+uvicorn[standard]
+python-dotenv
+httpx
+google-genai
+pydantic-settings
+python-multipart
+elevenlabs
+cloudinary
+motor
+lightfm-next
+numpy
+scipy
+apscheduler
+joblib
+unidecode
+openai
+
+
+================================================
+FILE: .env.example
+================================================
+# API KEYS
+# Replace with your actual keys
+ASSEMBLYAI_API_KEY=your_assemblyai_key
+GEMINI_API_KEY=your_gemini_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+DID_API_KEY=your_did_key
+ELEVENLABS_VOICE_ID=TX3LPaxmHKxFdv7VOQHJ
+
+# Project Config
+API_V1_STR=/api
+PROJECT_NAME="CareerZoneAI Backend"
+
+
+
+================================================
+FILE: app/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/main.py
+================================================
+from __future__ import annotations
+
+import asyncio
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.v1.router import api_router
+from app.core.config import settings
+from app.core.database import close_db, connect_db
+from app.services.recommendation.model_manager import engine
+from app.services.recommendation.scheduler import start_scheduler, stop_scheduler
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
+_startup_executor = ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="startup")
+
+
+def _init_model_sync() -> None:
+    """Blocking init: load saved model or run initial full retrain."""
+    loaded = engine.load_from_disk()
+    if not loaded:
+        logger.info("No persisted model — running initial full retrain …")
+        result = engine.full_retrain()
+        logger.info("Initial retrain result: %s", result)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage startup and shutdown for all subsystems."""
+    # ── Startup ──────────────────────────────────────────────────────────
+    logger.info("Starting CareerZoneAI …")
+
+    # 1. Connect MongoDB (Motor)
+    db = await connect_db()
+    logger.info("MongoDB connected (Motor)")
+
+    # 2. Ensure indexes on interactions collection
+    try:
+        await db[settings.INTERACTIONS_COLLECTION].create_index(
+            [("userId", 1), ("jobId", 1), ("type", 1)],
+            name="idx_user_job_type",
+        )
+        await db[settings.INTERACTIONS_COLLECTION].create_index(
+            [("createdAt", 1)],
+            name="idx_created_at",
+        )
+        logger.info("Interaction indexes ensured")
+    except Exception as e:
+        logger.warning("Could not create indexes: %s", e)
+
+    # 3. Load / train recommendation model in background thread
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(_startup_executor, _init_model_sync)
+
+    # 4. Start scheduler (daily retrain + periodic partial update)
+    start_scheduler()
+
+    logger.info("CareerZoneAI is READY")
+
+    yield
+
+    # ── Shutdown ─────────────────────────────────────────────────────────
+    logger.info("Shutting down CareerZoneAI …")
+    stop_scheduler()
+    await close_db()
+    logger.info("Shutdown complete")
+
+
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+
+# Cấu hình CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Đăng ký Router
+app.include_router(api_router, prefix=settings.API_PREFIX)
+
+
+@app.get("/")
+def root():
+    return {"message": "Welcome to CareerZoneAI Python Backend"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+
+================================================
+FILE: app/api/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/api/v1/router.py
+================================================
+from fastapi import APIRouter
+
+from app.api.v1.endpoints import (
+    embedding,
+    interview,
+    recommendation,
+    similar_jobs,
+    simli,
+)
+
+api_router = APIRouter()
+
+# interview endpoints go to top level /api/chat etc.
+api_router.include_router(interview.router, tags=["Interview"])
+api_router.include_router(simli.router, prefix="/simli", tags=["Simli"])
+api_router.include_router(
+    embedding.router, prefix="/embeddings", tags=["Embeddings"])
+api_router.include_router(
+    similar_jobs.router, prefix="/embeddings", tags=["Similar Jobs"])
+api_router.include_router(recommendation.router, tags=["Recommendations"])
+
+
+
+================================================
+FILE: app/api/v1/endpoints/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/api/v1/endpoints/embedding.py
+================================================
+import httpx
+from fastapi import APIRouter, HTTPException, Header
+from typing import Annotated
+from app.models.embedding import QueryEmbeddingRequest
+from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+@router.post("/query-embedding")
+async def generate_query_embedding(req: QueryEmbeddingRequest, x_internal_secret: Annotated[str | None, Header()] = None):
+    if x_internal_secret != settings.INTERNAL_API_KEY:
+        logger.warning("Unauthorized access attempt to /query-embedding endpoint")
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not set in .env")
+
+    if not req.query or not req.query.strip():
+        raise HTTPException(status_code=400, detail="Text input is required and must be a non-empty string")
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/{req.model}:embedContent"
+    headers = {
+        "x-goog-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": req.model,
+        "content": {
+            "parts": [{"text": req.query.strip()}]
+        }
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            
+            if "embedding" not in data or "values" not in data["embedding"]:
+                logger.error(f"Invalid response from Gemini API: {data}")
+                raise HTTPException(status_code=500, detail="Invalid response format from Gemini API")
+                
+            return {"embedding": data["embedding"]["values"]}
+            
+        except httpx.HTTPStatusError as e:
+            error_data = e.response.text
+            logger.error(f"Gemini API error: {e.response.status_code} {e.response.reason_phrase} - {error_data}")
+            raise HTTPException(status_code=502, detail=f"Gemini API error: {e.response.status_code} {error_data}")
+        except httpx.RequestError as e:
+            logger.error(f"Network error communicating with Gemini API: {str(e)}")
+            raise HTTPException(status_code=503, detail="Network error communicating with Gemini API")
+
+
+
+================================================
+FILE: app/api/v1/endpoints/interview.py
+================================================
+import urllib.parse
+import requests
+import os
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
+from app.models.chat import ChatRequest, TTSRequest, EndInterviewRequest, TranscribeRequest
+from app.services import llm_service, tts_service, stt_service
+from app.core.config import settings
+
+router = APIRouter()
+
+@router.post("/chat")
+async def chat(request: ChatRequest):
+    try:
+        # 1. Gọi LLM
+        ai_text = await llm_service.generate_response(
+            request.sessionId, request.message, request.isStart, request.topic
+        )
+        # debug only
+        # ai_text = "tôi có thể giúp gì cho bạn nhỉ, bạn cứ nói";
+        
+        # 2. Xử lý stream audio từ ElevenLabs cho dạng PCM16
+        if request.avatarType == "simli":
+            voice_id = "EXAVITQu4vr4xnSDxMaL"
+        else:
+            voice_id = "pNInz6obpgDQGcFmaJgB"
+        
+        tts_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream?output_format=pcm_16000"
+        
+        tts_headers = {
+            "xi-api-key": settings.ELEVENLABS_API_KEY,
+            "Content-Type": "application/json",
+        }
+        
+        tts_payload = {
+            "text": ai_text,
+            "model_id": "eleven_v3",
+            "voice_settings": {
+                "stability": 0.5,
+                "similarity_boost": 0.75
+            }
+        }
+        
+        def audio_stream_generator():
+            try:
+                # Sử dụng mode stream=True của requests
+                with requests.post(tts_url, json=tts_payload, headers=tts_headers, stream=True) as tts_response:
+                    tts_response.raise_for_status()
+                    total = 0
+                    chunk_count = 0
+                    for chunk in tts_response.iter_content(chunk_size=4096):
+                        if chunk:
+                            total += len(chunk)
+                            chunk_count += 1
+                            if chunk_count % 10 == 0:
+                                print(f"[ElevenLabs] Streaming chunk {chunk_count}... ({total} bytes so far)")
+                            yield chunk
+                    print(f"[ElevenLabs] Finished! Streamed total {total} bytes of pcm 16000 audio")
+            except Exception as e:
+                print(f"[ElevenLabs Streaming Error]: {e}")
+
+        # Trả về StreamingResponse với headers chứa AI Text
+        return StreamingResponse(
+            audio_stream_generator(),
+            media_type="application/octet-stream",
+            headers={
+                "X-AI-Response": urllib.parse.quote(ai_text),
+                "Access-Control-Expose-Headers": "X-AI-Response",
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/tts")
+async def tts(request: TTSRequest):
+    return await tts_service.stream_audio_from_text(request.text)
+
+@router.post("/transcribe")
+async def transcribe(request: TranscribeRequest):
+    try:
+        text = await stt_service.transcribe_audio(request.audioData)
+        return {"text": text}
+    except Exception as e:
+        status_code = 400 if "Audio too short" in str(e) else 500
+        raise HTTPException(status_code=status_code, detail=str(e))
+
+@router.post("/end")
+async def end_interview(request: EndInterviewRequest):
+    try:
+        llm_service.clear_session(request.sessionId)
+        return {"status": "success", "message": "Interview session ended"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+================================================
+FILE: app/api/v1/endpoints/recommendation.py
+================================================
+"""
+Recommendation endpoints:
+  - POST /interactions          — record a user-job interaction
+  - GET  /recommendations/{id}  — personalised job recommendations
+  - POST /retrain               — trigger full model retrain
+  - POST /partial-update        — trigger incremental update
+  - GET  /health                — model health / status
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.models.recommendation import (
+    InteractionRequest,
+    JobScore,
+    RecommendationResponse,
+)
+from app.services.recommendation.model_manager import engine
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rec-api")
+
+
+def _verify_internal(secret: str | None) -> None:
+    if secret != settings.INTERNAL_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+# ── Record interaction ────────────────────────────────────────────────────────
+
+@router.post("/interactions")
+async def record_interaction(
+    req: InteractionRequest,
+    x_internal_secret: Optional[str] = Header(None),
+):
+    _verify_internal(x_internal_secret)
+
+    db = get_db()
+    doc = {
+        "userId": req.userId,
+        "jobId": req.jobId,
+        "type": req.type.value,
+        "createdAt": datetime.now(timezone.utc),
+    }
+    await db[settings.INTERACTIONS_COLLECTION].insert_one(doc)
+    return {"status": "ok"}
+
+
+# ── Get recommendations ───────────────────────────────────────────────────────
+
+@router.get("/recommendations/{user_id}", response_model=RecommendationResponse)
+async def get_recommendations(
+    user_id: str,
+    x_internal_secret: Optional[str] = Header(None),
+):
+    # _verify_internal(x_internal_secret)
+
+    loop = asyncio.get_running_loop()
+    results = await loop.run_in_executor(_executor, engine.predict, user_id)
+
+    # Determine source heuristic
+    source = "popular"
+    if engine.is_ready:
+        user_map = engine.dataset.mapping()[0]
+        if user_id in user_map:
+            source = "model"
+        elif results:
+            source = "cold_start"
+
+    return RecommendationResponse(
+        userId=user_id,
+        recommendations=[JobScore(**r) for r in results],
+        source=source,
+    )
+
+
+# ── Admin: retrain ────────────────────────────────────────────────────────────
+
+@router.post("/retrain")
+async def retrain(x_internal_secret: Optional[str] = Header(None)):
+    _verify_internal(x_internal_secret)
+
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(_executor, engine.full_retrain)
+    return result
+
+
+# ── Admin: partial update ─────────────────────────────────────────────────────
+
+@router.post("/partial-update")
+async def partial_update(x_internal_secret: Optional[str] = Header(None)):
+    _verify_internal(x_internal_secret)
+
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(_executor, engine.partial_update)
+    return result
+
+
+# ── Health check ──────────────────────────────────────────────────────────────
+
+@router.get("/health")
+async def health():
+    return engine.get_status()
+
+
+
+================================================
+FILE: app/api/v1/endpoints/similar_jobs.py
+================================================
+import datetime
+from typing import Optional
+
+from bson import ObjectId
+from fastapi import APIRouter, Header, HTTPException
+from pydantic import BaseModel, Field
+
+from app.core.config import settings
+from app.core.database import get_db
+
+router = APIRouter()
+
+
+class SimilarJobsRequest(BaseModel):
+    job_id: str = Field(...,
+                        description="Source job ID to find similar jobs for")
+    limit: int = Field(default=6, ge=1, le=20, description="Number of results")
+
+
+class SimilarJobResult(BaseModel):
+    job_id: str
+    similarity_score: float
+
+
+class SimilarJobsResponse(BaseModel):
+    success: bool = True
+    data: list[SimilarJobResult]
+
+
+@router.post("/similar-jobs", response_model=SimilarJobsResponse)
+async def find_similar_jobs(
+    request: SimilarJobsRequest,
+    x_internal_secret: Optional[str] = Header(None),
+):
+    """
+    Find similar jobs by job ID using MongoDB Atlas $vectorSearch.
+
+    Flow:
+    1. Fetch source job's embedding from MongoDB
+    2. Calculate average embedding from chunks
+    3. Perform $vectorSearch on jobs collection
+    4. Return array of job IDs with similarity scores
+    """
+    # Auth check
+    if x_internal_secret != settings.INTERNAL_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    db = get_db()
+    jobs_collection = db["jobs"]
+
+    # Validate job_id format
+    try:
+        source_object_id = ObjectId(request.job_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job_id format")
+
+    # 1. Fetch source job and its embeddings
+    job = await jobs_collection.find_one(
+        {"_id": source_object_id},
+        {"chunks": 1, "title": 1}
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # 2. Extract embeddings from chunks
+    chunks = job.get("chunks", [])
+    embeddings = [
+        chunk["embedding"]
+        for chunk in chunks
+        if chunk.get("embedding") and len(chunk["embedding"]) > 0
+    ]
+
+    if not embeddings:
+        return SimilarJobsResponse(data=[])
+
+    # 3. Calculate average embedding
+    dim = len(embeddings[0])
+    avg_embedding = [0.0] * dim
+    for emb in embeddings:
+        for i in range(dim):
+            avg_embedding[i] += emb[i]
+    for i in range(dim):
+        avg_embedding[i] /= len(embeddings)
+
+    # 4. Perform $vectorSearch
+    num_candidates = max(request.limit * 20, 200)
+
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": "vt",
+                "path": "chunks.embedding",
+                "queryVector": avg_embedding,
+                "numCandidates": num_candidates,
+                "limit": request.limit + 5,
+                "filter": {
+                    "status": {"$eq": "ACTIVE"},
+                    "moderationStatus": {"$eq": "APPROVED"},
+                },
+            }
+        },
+        {"$addFields": {"similarityScore": {"$meta": "vectorSearchScore"}}},
+        # Exclude source job manually
+        {"$match": {
+            "_id": {"$ne": source_object_id},
+            "deadline": {"$gte": datetime.datetime.utcnow()},
+        }},
+        {"$project": {"_id": 1, "similarityScore": 1}},
+        {"$limit": request.limit},
+    ]
+
+    results = await jobs_collection.aggregate(pipeline).to_list(length=request.limit)
+
+    return SimilarJobsResponse(
+        data=[
+            SimilarJobResult(
+                job_id=str(r["_id"]),
+                similarity_score=round(r["similarityScore"], 4),
+            )
+            for r in results
+        ]
+    )
+
+
+
+================================================
+FILE: app/api/v1/endpoints/simli.py
+================================================
+import os
+import requests
+from fastapi import APIRouter, HTTPException
+from app.models.chat import SimliSessionRequest
+from app.core.config import settings
+
+router = APIRouter()
+
+@router.post("/get-session-token")
+def get_session_token(req: SimliSessionRequest):
+    api_key = settings.SIMLI_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SIMLI_API_KEY is not set in .env")
+
+    url = "https://api.simli.ai/compose/token"
+    headers = {
+        "Content-Type": "application/json",
+        "x-simli-api-key": api_key
+    }
+    # Important: MUST request pcm16 audio input format to use the raw PCM streaming byte trick from Elevenlabs
+    payload = {
+        "faceId": req.faceId,
+        "handleSilence": True,
+        "maxSessionLength": req.maxSessionLength,
+        "maxIdleTime": 300,
+        "audioInputFormat": "pcm16",
+        "model": "artalk"
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        error_msg = str(e)
+        if hasattr(e, "response") and e.response is not None and hasattr(e.response, "text"):
+            error_msg += f". Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@router.get("/get-ice-servers")
+def get_ice_servers():
+    api_key = settings.SIMLI_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SIMLI_API_KEY is not set in .env")
+    
+    url = "https://api.simli.ai/compose/ice"
+    headers = {"x-simli-api-key": api_key}
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        error_msg = str(e)
+        if hasattr(e, "response") and e.response is not None and hasattr(e.response, "text"):
+            error_msg += f". Response: {e.response.text}"
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+
+================================================
+FILE: app/core/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/core/config.py
+================================================
+from pathlib import Path
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    API_PREFIX: str = "/api/v1"
+    PROJECT_NAME: str = "CareerZoneAI Backend"
+    # API KEYS
+    ELEVENLABS_API_KEY: str
+    ASSEMBLYAI_API_KEY: str
+    GITHUB_TOKEN: str
+    SIMLI_API_KEY: str
+    GEMINI_API_KEY: str
+    INTERNAL_API_KEY: str = "careerzone_internal_secret_key"
+    # MongoDB
+    MONGO_URI: str = ""
+    MONGO_DB_NAME: str = "careerzone"
+    # CLOUDINARY
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+    # CORS
+    BACKEND_CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "*"
+    ]
+
+    # ── Collections ──────────────────────────────────────────────────────────
+    JOBS_COLLECTION: str = "jobs"
+    CANDIDATES_COLLECTION: str = "candidateprofiles"
+    INTERACTIONS_COLLECTION: str = "interactions"
+
+    # ── Recommendation model ─────────────────────────────────────────────────
+    MODEL_DIR: str = "./models"
+    RETRAIN_HOUR: int = 2
+    RETRAIN_MINUTE: int = 0
+    PARTIAL_UPDATE_INTERVAL_MINUTES: int = 30
+    INTERACTION_DAYS: int = 30
+
+    # LightFM hyper-parameters
+    MODEL_NO_COMPONENTS: int = 64
+    MODEL_EPOCHS: int = 30
+    MODEL_PARTIAL_EPOCHS: int = 5
+    MODEL_LEARNING_RATE: float = 0.05
+    MODEL_LOSS: str = "warp"
+    MODEL_NUM_THREADS: int = 4
+    TOP_N: int = 20
+
+    # Interaction weights
+    WEIGHT_VIEW: float = 1.0
+    WEIGHT_SAVE: float = 2.5
+    WEIGHT_APPLY: float = 5.0
+
+    @property
+    def model_path(self) -> Path:
+        return Path(self.MODEL_DIR)
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"  # Allow extra fields in .env
+
+
+settings = Settings()
+
+
+
+================================================
+FILE: app/core/database.py
+================================================
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+
+from app.core.config import settings
+
+# ── Single Motor client (provides both async & sync access) ──────────────────
+_client: AsyncIOMotorClient | None = None
+_db: AsyncIOMotorDatabase | None = None
+
+
+async def connect_db() -> AsyncIOMotorDatabase:
+    """Create / return the async Motor database connection."""
+    global _client, _db
+    if _client is None:
+        _client = AsyncIOMotorClient(settings.MONGO_URI)
+        _db = _client[settings.MONGO_DB_NAME]
+    return _db
+
+
+async def close_db() -> None:
+    """Close the Motor client (also closes underlying sync PyMongo)."""
+    global _client, _db
+    if _client is not None:
+        _client.close()
+        _client = None
+        _db = None
+
+
+def get_db() -> AsyncIOMotorDatabase:
+    """Return the async Motor database handle (must call connect_db first)."""
+    if _db is None:
+        raise RuntimeError("DB not connected. Call connect_db() first.")
+    return _db
+
+
+def get_sync_db():
+    """Return sync PyMongo database from Motor's underlying client.
+
+    Used ONLY by recommendation training threads (data_loader, model_manager)
+    where async is not available. Motor wraps PyMongo internally —
+    `client.delegate` exposes the underlying pymongo.MongoClient.
+    """
+    if _client is None:
+        raise RuntimeError("DB not connected. Call connect_db() first.")
+    return _client.delegate[settings.MONGO_DB_NAME]
+
+
+
+================================================
+FILE: app/models/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/models/chat.py
+================================================
+from pydantic import BaseModel
+from typing import Optional
+
+class ChatRequest(BaseModel):
+    sessionId: str
+    message: str = ""
+    isStart: bool = False
+    topic: Optional[str] = None  # Interview topic for focused questions
+    avatarType: Optional[str] = "live2d"
+
+class TTSRequest(BaseModel):
+    text: str
+
+class EndInterviewRequest(BaseModel):
+    sessionId: str
+
+class TranscribeRequest(BaseModel):
+    audioData: str
+
+class SimliSessionRequest(BaseModel):
+    faceId: str
+    maxSessionLength: int = 3600
+
+
+
+================================================
+FILE: app/models/embedding.py
+================================================
+from pydantic import BaseModel
+from typing import Optional
+
+class QueryEmbeddingRequest(BaseModel):
+    query: str
+    model: Optional[str] = "models/gemini-embedding-001"
+
+
+
+================================================
+FILE: app/models/recommendation.py
+================================================
+from enum import Enum
+
+from pydantic import BaseModel
+
+
+class InteractionType(str, Enum):
+    VIEW = "VIEW"
+    SAVE = "SAVE"
+    APPLY = "APPLY"
+
+
+class InteractionRequest(BaseModel):
+    userId: str
+    jobId: str
+    type: InteractionType
+
+
+class JobScore(BaseModel):
+    jobId: str
+    score: float
+
+
+class RecommendationResponse(BaseModel):
+    userId: str
+    recommendations: list[JobScore]
+    source: str  # "model", "cold_start", "popular"
+
+
+
+================================================
+FILE: app/services/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/services/cloudinary_service.py
+================================================
+import cloudinary
+import cloudinary.uploader
+from app.core.config import settings
+import asyncio
+
+# Configure Cloudinary
+cloudinary.config( 
+  cloud_name = settings.CLOUDINARY_CLOUD_NAME, 
+  api_key = settings.CLOUDINARY_API_KEY, 
+  api_secret = settings.CLOUDINARY_API_SECRET,
+  secure = True
+)
+
+async def upload_audio_bytes(audio_data: bytes, public_id: str = None) -> str:
+    """
+    Uploads audio bytes to Cloudinary and returns the secure URL.
+    Run asynchronously to avoid blocking the main thread.
+    """
+    try:
+        # Cloudinary upload is blocking, so run in executor
+        loop = asyncio.get_event_loop()
+        
+        def _upload():
+            return cloudinary.uploader.upload(
+                audio_data, 
+                resource_type="video", # Audio is treated as video resource type in Cloudinary usually, or 'auto'
+                public_id=public_id,
+                folder="ai-interview/audio",
+                format="mp3"
+            )
+
+        result = await loop.run_in_executor(None, _upload)
+        return result.get("secure_url")
+        
+    except Exception as e:
+        print(f"Cloudinary upload error: {e}")
+        raise e
+
+
+
+================================================
+FILE: app/services/llm_service.py
+================================================
+import os
+import urllib.parse
+from openai import OpenAI
+from app.core.config import settings
+
+# Initialize OpenAI Client pointing to GitHub Models
+client = None
+if settings.GITHUB_TOKEN:
+    client = OpenAI(
+        base_url="https://models.github.ai/inference",
+        api_key=settings.GITHUB_TOKEN
+    )
+
+def get_interviewer_prompt(topic: str = None) -> str:
+    """Generate interviewer prompt based on topic"""
+    
+    # Base prompt
+    base_prompt = """Bạn là CareerZoneAI, một AI phỏng vấn viên chuyên nghiệp, thân thiện và hỗ trợ ứng viên.
+
+QUY TẮC:
+1. Trả lời NGẮN GỌN (1-2 câu), tự nhiên như đang nói chuyện
+2. Không dùng markdown, emoji, hoặc ký tự đặc biệt.
+3. Khi muốn thể hiện cảm xúc, dùng tag tiếng Anh: [hihi], [haha],[laughs], [sighs], [chuckles], [gasps].
+4. Đặt câu hỏi rõ ràng, cụ thể
+5. Lắng nghe và phản hồi dựa trên câu trả lời của ứng viên
+6. Trả lời bằng tiếng Việt."""
+    
+    # Topic-specific content
+    if topic and topic.strip():
+        topic_content = f"""
+
+CHỦ ĐỀ PHỎNG VẤN: {topic}
+
+LUỒNG PHỎNG VẤN (tập trung vào chủ đề "{topic}"):
+1. Chào hỏi và giới thiệu bản thân, hãy cười và đề cập đến chủ đề phỏng vấn
+2. Hỏi về kiến thức cơ bản liên quan đến {topic}
+3. Hỏi về kinh nghiệm thực tế với {topic}
+4. Hỏi về dự án/case study liên quan đến {topic}
+5. Hỏi về cách xử lý vấn đề/thách thức trong {topic}
+6. Kết thúc và cảm ơn
+
+Lưu ý: Tất cả câu hỏi phải liên quan trực tiếp đến chủ đề "{topic}". Đặt câu hỏi chuyên sâu và phù hợp với lĩnh vực này.
+
+Hãy bắt đầu phỏng vấn về chủ đề "{topic}" một cách tự nhiên!"""
+    else:
+        topic_content = """
+
+LUỒNG PHỎNG VẤN:
+1. Chào hỏi và giới thiệu bản thân
+2. Hỏi về background và kinh nghiệm
+3. Hỏi về kỹ năng chuyên môn
+4. Hỏi về dự án đã làm
+5. Hỏi về mục tiêu nghề nghiệp
+6. Kết thúc và cảm ơn
+
+Hãy bắt đầu phỏng vấn một cách tự nhiên!"""
+    
+    return base_prompt + topic_content
+
+# Lưu trữ session trong bộ nhớ (Tương tự Map trong JS)
+interview_sessions = {}
+# Lưu trữ topic cho mỗi session
+interview_topics = {}
+
+async def generate_response(session_id: str, message: str, is_start: bool = False, topic: str = None):
+    if not client:
+        raise ValueError("GitHub Token for LLM is not set!")
+        
+    if session_id not in interview_sessions:
+        interview_sessions[session_id] = []
+    
+    # Save topic for this session if provided
+    if is_start and topic:
+        interview_topics[session_id] = topic
+    
+    # Get the topic for this session
+    session_topic = interview_topics.get(session_id, None)
+    current_prompt = get_interviewer_prompt(session_topic)
+    
+    history = interview_sessions[session_id]
+    
+    if len(history) == 0:
+        history.append({"role": "system", "content": current_prompt})
+    
+    if is_start:
+        topic_text = f" về chủ đề \"{session_topic}\"" if session_topic else ""
+        prompt = f"Hãy bắt đầu cuộc phỏng vấn{topic_text} với lời chào... Thêm [haha] ở đầu để thêm sinh động"
+    else:
+        prompt = message
+        
+    history.append({"role": "user", "content": prompt})
+    
+    # Make sync call to OpenAI wrapper
+    response = client.chat.completions.create(
+        messages=history,
+        temperature=1,
+        top_p=1,
+        model="gpt-4o"
+    )
+    
+    ai_text = response.choices[0].message.content.strip()
+    history.append({"role": "assistant", "content": ai_text})
+    
+    print(f"[AI] User: {prompt}")
+    print(f"[AI] AI: {ai_text}")
+    
+    return ai_text
+
+def clear_session(session_id: str):
+    if session_id in interview_sessions:
+        del interview_sessions[session_id]
+    if session_id in interview_topics:
+        del interview_topics[session_id]
+
+
+
+================================================
+FILE: app/services/stt_service.py
+================================================
+import asyncio
+import base64
+import httpx
+from app.core.config import settings
+
+async def transcribe_audio(audio_data_base64: str) -> str:
+    # 1. Decode base64
+    try:
+        audio_bytes = base64.b64decode(audio_data_base64)
+    except Exception:
+        raise Exception("Invalid base64 audio data")
+
+    if len(audio_bytes) < 5000:
+        raise Exception("Audio too short. Please speak for at least 2-3 seconds.")
+
+    headers = {
+        "Authorization": settings.ASSEMBLYAI_API_KEY
+    }
+
+    async with httpx.AsyncClient() as client:
+        # 2. Upload
+        upload_response = await client.post(
+            "https://api.assemblyai.com/v2/upload",
+            content=audio_bytes,
+            headers=headers
+        )
+        upload_response.raise_for_status()
+        upload_url = upload_response.json()["upload_url"]
+
+        # 3. Transcribe
+        transcript_response = await client.post(
+            "https://api.assemblyai.com/v2/transcript",
+            json={"audio_url": upload_url, "language_code": "vi"},
+            headers=headers
+        )
+        transcript_response.raise_for_status()
+        transcript_id = transcript_response.json()["id"]
+
+        # 4. Poll
+        max_attempts = 60
+        for _ in range(max_attempts):
+            poll_response = await client.get(
+                f"https://api.assemblyai.com/v2/transcript/{transcript_id}",
+                headers=headers
+            )
+            poll_response.raise_for_status()
+            result = poll_response.json()
+
+            if result["status"] == "completed":
+                return result["text"] or ""
+            elif result["status"] == "error":
+                raise Exception(f"Transcription failed: {result['error']}")
+            
+            await asyncio.sleep(0.5)
+        
+        raise Exception("Transcription timeout")
+
+
+
+================================================
+FILE: app/services/tts_service.py
+================================================
+from app.core.config import settings
+from fastapi.responses import StreamingResponse
+from elevenlabs.client import AsyncElevenLabs
+
+client = AsyncElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
+
+
+async def generate_audio(text: str) -> bytes:
+    """
+    Generates audio and returns the bytes. 
+    Useful for saving to file and sending URL to D-ID.
+    """
+    print("Generating audio...: ", text)
+    # client.text_to_speech.convert is an async generator, so we don't await the call itself
+    audio_iterator = client.text_to_speech.convert(
+        text=text,
+        voice_id="pNInz6obpgDQGcFmaJgB",
+        model_id="eleven_v3",
+        output_format="mp3_44100_128"
+    )
+    
+    audio_data = b""
+    async for chunk in audio_iterator:
+        audio_data += chunk
+    return audio_data
+
+
+
+================================================
+FILE: app/services/recommendation/__init__.py
+================================================
+from app.services.recommendation.model_manager import engine
+
+__all__ = ["engine"]
+
+
+
+================================================
+FILE: app/services/recommendation/data_loader.py
+================================================
+"""
+Data loader: query MongoDB (sync) and return data structures
+ready for feature engineering and LightFM Dataset building.
+
+All functions here use the sync PyMongo handle obtained from
+Motor's underlying client (via get_sync_db) because they run
+inside background threads (scheduler / manual retrain), not
+inside the async FastAPI event-loop.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from app.core.config import settings
+from app.core.database import get_sync_db
+
+logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Interactions
+# ═══════════════════════════════════════════════════════════════════════════════
+
+WEIGHT_MAP: dict[str, float] = {
+    "VIEW": settings.WEIGHT_VIEW,
+    "SAVE": settings.WEIGHT_SAVE,
+    "APPLY": settings.WEIGHT_APPLY,
+}
+
+
+def load_interactions(
+    days: int | None = None,
+    since: datetime | None = None,
+) -> tuple[list[tuple[str, str, float]], set[str], set[str], dict[str, set[str]]]:
+    """
+    Load interactions from MongoDB.
+
+    Returns:
+        - weighted_interactions: list of (user_id, job_id, weight)
+        - user_ids: set of all user ids that have interactions
+        - job_ids:  set of all job ids that have been interacted with
+        - applied_jobs: dict mapping user_id -> set of job_ids they APPLYed
+    """
+    db = get_sync_db()
+    collection = db[settings.INTERACTIONS_COLLECTION]
+
+    if since is None:
+        d = days or settings.INTERACTION_DAYS
+        since = datetime.now(timezone.utc) - timedelta(days=d)
+
+    query = {"createdAt": {"$gte": since}}
+    cursor = collection.find(query, {"userId": 1, "jobId": 1, "type": 1})
+
+    # Accumulate weights per (user, job) pair
+    pair_weights: dict[tuple[str, str], float] = defaultdict(float)
+    user_ids: set[str] = set()
+    job_ids: set[str] = set()
+    applied_jobs: dict[str, set[str]] = defaultdict(set)
+
+    count = 0
+    for doc in cursor:
+        uid = str(doc["userId"])
+        jid = str(doc["jobId"])
+        itype = doc.get("type", "VIEW")
+        weight = WEIGHT_MAP.get(itype, 1.0)
+
+        pair_weights[(uid, jid)] += weight
+        user_ids.add(uid)
+        job_ids.add(jid)
+        count += 1
+
+        if itype == "APPLY":
+            applied_jobs[uid].add(jid)
+
+    weighted = [(uid, jid, w) for (uid, jid), w in pair_weights.items()]
+    logger.info(
+        "Loaded %d raw interactions → %d unique (user, job) pairs, "
+        "%d users, %d jobs",
+        count, len(weighted), len(user_ids), len(job_ids),
+    )
+    return weighted, user_ids, job_ids, dict(applied_jobs)
+
+
+def load_interactions_since(since: datetime):
+    """Convenience for partial updates — load interactions since a timestamp."""
+    return load_interactions(since=since)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Jobs
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def load_active_jobs() -> list[dict[str, Any]]:
+    """Load all ACTIVE jobs from MongoDB."""
+    db = get_sync_db()
+    collection = db[settings.JOBS_COLLECTION]
+
+    projection = {
+        "title": 1,
+        "category": 1,
+        "type": 1,
+        "workType": 1,
+        "experience": 1,
+        "area": 1,
+        "skills": 1,
+        "location.province": 1,
+        "minSalary": 1,
+        "maxSalary": 1,
+        "status": 1,
+    }
+
+    jobs = list(collection.find({"status": "ACTIVE"}, projection))
+    logger.info("Loaded %d active jobs", len(jobs))
+    return jobs
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Candidates
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def load_candidates(
+    user_ids: set[str] | None = None,
+    include_onboarded: bool = True,
+) -> list[dict[str, Any]]:
+    """
+    Load candidate profiles from MongoDB.
+
+    Args:
+        user_ids: If provided, load only these users. If None, load all.
+        include_onboarded: If True (full retrain), also load all onboarded
+            users even if not in user_ids.
+    """
+    db = get_sync_db()
+    collection = db[settings.CANDIDATES_COLLECTION]
+
+    projection = {
+        "userId": 1,
+        "skills": 1,
+        "preferredCategories": 1,
+        "preferredLocations": 1,
+        "workPreferences": 1,
+        "expectedSalary": 1,
+        "onboardingCompleted": 1,
+    }
+
+    if user_ids is not None:
+        from bson import ObjectId
+
+        oid_list = []
+        for uid in user_ids:
+            try:
+                oid_list.append(ObjectId(uid))
+            except Exception:
+                pass
+
+        conditions = [{"userId": {"$in": oid_list}}]
+        if include_onboarded:
+            conditions.append({"onboardingCompleted": True})
+        query = {"$or": conditions}
+    else:
+        query = {}
+
+    candidates = list(collection.find(query, projection))
+    logger.info("Loaded %d candidate profiles", len(candidates))
+    return candidates
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Popular jobs fallback
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_popular_job_ids(limit: int = 20) -> list[str]:
+    """
+    Get the most interacted-with active jobs in the last N days.
+    Used as a fallback for users with no profile data.
+    """
+    db = get_sync_db()
+    since = datetime.now(timezone.utc) - \
+        timedelta(days=settings.INTERACTION_DAYS)
+
+    pipeline = [
+        {"$match": {"createdAt": {"$gte": since}}},
+        {
+            "$group": {
+                "_id": "$jobId",
+                "score": {
+                    "$sum": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {
+                                    "$eq": ["$type", "APPLY"]}, "then": 5.0},
+                                {"case": {
+                                    "$eq": ["$type", "SAVE"]}, "then": 2.5},
+                            ],
+                            "default": 1.0,
+                        }
+                    }
+                },
+            }
+        },
+        {"$sort": {"score": -1}},
+        {"$limit": limit},
+    ]
+
+    results = list(db[settings.INTERACTIONS_COLLECTION].aggregate(pipeline))
+    return [str(r["_id"]) for r in results]
+
+
+
+================================================
+FILE: app/services/recommendation/evaluator.py
+================================================
+"""
+Model evaluator: đánh giá chất lượng LightFM model (standalone).
+
+Hai chế độ:
+  1. **current** — load model đã train từ disk, đánh giá trên toàn bộ
+     interactions hiện tại (train metrics, nhanh).
+  2. **split**   — chia data theo random, train model mới trên tập train,
+     đánh giá trên tập test (offline evaluation, chính xác hơn).
+
+Metrics: Precision@K, Recall@K, AUC, MRR, Hit Rate@K, Coverage@K.
+
+Usage:
+  python -m app.services.recommendation.evaluator --mode current
+  python -m app.services.recommendation.evaluator --mode split --test-ratio 0.2 --k 10
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import joblib
+import numpy as np
+from lightfm import LightFM
+from lightfm.data import Dataset
+from lightfm.evaluation import auc_score, precision_at_k, recall_at_k, reciprocal_rank
+from scipy.sparse import coo_matrix, csr_matrix
+
+from app.core.config import settings
+from app.services.recommendation.data_loader import (
+    load_active_jobs,
+    load_candidates,
+    load_interactions,
+)
+from app.services.recommendation.feature_engineering import (
+    build_item_feature_tuples,
+    build_user_feature_tuples,
+    collect_all_feature_names,
+)
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_K = 10
+DEFAULT_TEST_RATIO = 0.2
+
+_MODEL_FILE = "lightfm_model.joblib"
+_DATASET_FILE = "lightfm_dataset.joblib"
+_META_FILE = "lightfm_meta.joblib"
+_MATRICES_FILE = "lightfm_matrices.joblib"
+
+
+def _safe_mean(arr: np.ndarray) -> float:
+    """Tính mean, bỏ qua NaN/Inf, trả 0.0 nếu rỗng."""
+    finite = arr[np.isfinite(arr)]
+    return float(finite.mean()) if len(finite) > 0 else 0.0
+
+
+def _load_model_from_disk(
+    model_dir: Path | None = None,
+) -> tuple[LightFM, Dataset, Any, Any] | None:
+    """Load model + dataset + feature matrices từ disk."""
+    model_dir = model_dir or settings.model_path
+    model_file = model_dir / _MODEL_FILE
+    dataset_file = model_dir / _DATASET_FILE
+    matrices_file = model_dir / _MATRICES_FILE
+
+    if not model_file.exists() or not dataset_file.exists():
+        logger.error("Model files not found at %s", model_dir)
+        return None
+
+    model = joblib.load(model_file)
+    ds = joblib.load(dataset_file)
+
+    user_features_mat = None
+    item_features_mat = None
+    if matrices_file.exists():
+        matrices = joblib.load(matrices_file)
+        user_features_mat = matrices.get("user_features_matrix")
+        item_features_mat = matrices.get("item_features_matrix")
+    else:
+        logger.warning("Matrices file not found — rebuilding from DB")
+        jobs = load_active_jobs()
+        candidates = load_candidates(include_onboarded=True)
+        user_feat_tuples = build_user_feature_tuples(candidates)
+        item_feat_tuples = build_item_feature_tuples(jobs)
+        user_features_mat = ds.build_user_features(
+            user_feat_tuples, normalize=False)
+        item_features_mat = ds.build_item_features(
+            item_feat_tuples, normalize=False)
+
+    return model, ds, user_features_mat, item_features_mat
+
+
+def _random_split_interactions(
+    weighted_interactions: list[tuple[str, str, float]],
+    test_ratio: float = DEFAULT_TEST_RATIO,
+    seed: int = 42,
+) -> tuple[list[tuple[str, str, float]], list[tuple[str, str, float]]]:
+    """Random split per user, ensuring each user has ≥1 train interaction."""
+    rng = np.random.RandomState(seed)
+
+    user_interactions: dict[str, list[tuple[str, str, float]]] = {}
+    for uid, jid, w in weighted_interactions:
+        user_interactions.setdefault(uid, []).append((uid, jid, w))
+
+    train_data: list[tuple[str, str, float]] = []
+    test_data: list[tuple[str, str, float]] = []
+
+    for uid, interactions in user_interactions.items():
+        if len(interactions) <= 1:
+            train_data.extend(interactions)
+            continue
+
+        n_test = max(1, int(len(interactions) * test_ratio))
+        indices = rng.permutation(len(interactions))
+        test_indices = set(indices[:n_test])
+
+        for i, inter in enumerate(interactions):
+            if i in test_indices:
+                test_data.append(inter)
+            else:
+                train_data.append(inter)
+
+    return train_data, test_data
+
+
+def _compute_coverage(
+    model: LightFM, test_interactions: csr_matrix,
+    user_features, item_features, k: int, n_items: int,
+) -> float:
+    """Catalog coverage: % unique items trong top-K trên test users."""
+    recommended_items: set[int] = set()
+    test_csr = test_interactions.tocsr()
+
+    for user_idx in range(test_csr.shape[0]):
+        if test_csr[user_idx].nnz == 0:
+            continue
+        item_ids = np.arange(n_items, dtype=np.int32)
+        scores = model.predict(
+            user_ids=user_idx, item_ids=item_ids,
+            user_features=user_features, item_features=item_features,
+        )
+        top_k = np.argsort(-scores)[:k]
+        recommended_items.update(top_k.tolist())
+
+    return len(recommended_items) / n_items if n_items > 0 else 0.0
+
+
+def _compute_hit_rate(
+    model: LightFM, train_interactions: csr_matrix,
+    test_interactions: csr_matrix, user_features, item_features, k: int,
+) -> float:
+    """Hit Rate@K: % users có ít nhất 1 item đúng trong top-K."""
+    test_csr = test_interactions.tocsr()
+    train_csr = train_interactions.tocsr()
+    n_items = test_csr.shape[1]
+    hits = 0
+    total = 0
+
+    for user_idx in range(test_csr.shape[0]):
+        if test_csr[user_idx].nnz == 0:
+            continue
+        total += 1
+
+        item_ids = np.arange(n_items, dtype=np.int32)
+        scores = model.predict(
+            user_ids=user_idx, item_ids=item_ids,
+            user_features=user_features, item_features=item_features,
+        )
+        train_items = set(train_csr[user_idx].indices)
+        for idx in train_items:
+            scores[idx] = -np.inf
+
+        top_k = set(np.argsort(-scores)[:k].tolist())
+        test_items = set(test_csr[user_idx].indices)
+        if top_k & test_items:
+            hits += 1
+
+    return hits / total if total > 0 else 0.0
+
+
+def evaluate_current_model(k: int = DEFAULT_K) -> dict[str, Any]:
+    """Load model từ disk, đánh giá trên toàn bộ interactions (train metrics)."""
+    t0 = time.time()
+    logger.info("═══ Evaluating CURRENT model (k=%d) ═══", k)
+
+    loaded = _load_model_from_disk()
+    if loaded is None:
+        return {"status": "error", "reason": "model_not_found"}
+
+    model, ds, user_features_mat, item_features_mat = loaded
+
+    weighted, _, _, _ = load_interactions()
+    if not weighted:
+        return {"status": "error", "reason": "no_interactions"}
+
+    user_id_map, _, item_id_map, _ = ds.mapping()
+    data = [
+        (uid, jid, w) for uid, jid, w in weighted
+        if uid in user_id_map and jid in item_id_map
+    ]
+    if not data:
+        return {"status": "error", "reason": "no_interactions_after_filtering"}
+
+    interactions_mat, _ = ds.build_interactions(data)
+    n_inter = len(data)
+    interactions_csr = interactions_mat.tocsr()
+
+    prec = precision_at_k(
+        model, interactions_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, num_threads=settings.MODEL_NUM_THREADS,
+    )
+    rec = recall_at_k(
+        model, interactions_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, num_threads=settings.MODEL_NUM_THREADS,
+    )
+    auc = auc_score(
+        model, interactions_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+    rr = reciprocal_rank(
+        model, interactions_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+
+    elapsed = time.time() - t0
+    metrics = {
+        "status": "success",
+        "mode": "current",
+        "k": k,
+        f"precision@{k}": round(_safe_mean(prec), 4),
+        f"recall@{k}": round(_safe_mean(rec), 4),
+        "auc": round(_safe_mean(auc), 4),
+        "mrr": round(_safe_mean(rr), 4),
+        "n_users_evaluated": int(np.sum(np.isfinite(prec))),
+        "n_interactions": n_inter,
+        "elapsed_seconds": round(elapsed, 2),
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    logger.info("═══ Current model evaluation complete ═══ %s", metrics)
+    return metrics
+
+
+def evaluate_train_test_split(
+    test_ratio: float = DEFAULT_TEST_RATIO,
+    k: int = DEFAULT_K,
+) -> dict[str, Any]:
+    """
+    Offline evaluation: chia data → train/test → train model mới → đánh giá.
+    Tạo model tạm — KHÔNG ảnh hưởng model đang chạy.
+    """
+    t0 = time.time()
+    logger.info(
+        "═══ Starting TRAIN/TEST evaluation (ratio=%.2f, k=%d) ═══",
+        test_ratio, k,
+    )
+
+    weighted, user_ids, job_ids, _ = load_interactions()
+    jobs = load_active_jobs()
+    candidates = load_candidates(user_ids=user_ids, include_onboarded=True)
+
+    if not weighted:
+        return {"status": "skipped", "reason": "no_interactions", "elapsed_seconds": 0}
+    if not jobs:
+        return {"status": "skipped", "reason": "no_active_jobs", "elapsed_seconds": 0}
+
+    train_data, test_data = _random_split_interactions(weighted, test_ratio)
+    logger.info("Split: %d train, %d test interactions",
+                len(train_data), len(test_data))
+
+    if not test_data:
+        return {
+            "status": "skipped",
+            "reason": "not_enough_data_for_split",
+            "elapsed_seconds": round(time.time() - t0, 2),
+        }
+
+    all_job_ids = [str(j["_id"]) for j in jobs]
+    all_user_ids = {str(c.get("userId", c.get("_id", ""))) for c in candidates}
+    all_user_ids.update(user_ids)
+
+    user_feat_names, item_feat_names = collect_all_feature_names(
+        jobs, candidates)
+
+    ds = Dataset()
+    ds.fit(
+        users=all_user_ids,
+        items=all_job_ids,
+        user_features=user_feat_names,
+        item_features=item_feat_names,
+    )
+
+    known_job_ids = set(all_job_ids)
+    known_user_ids = all_user_ids
+    train_data = [
+        (uid, jid, w) for uid, jid, w in train_data
+        if uid in known_user_ids and jid in known_job_ids
+    ]
+    test_data = [
+        (uid, jid, w) for uid, jid, w in test_data
+        if uid in known_user_ids and jid in known_job_ids
+    ]
+
+    if not test_data:
+        return {
+            "status": "skipped",
+            "reason": "all_test_interactions_filtered_out",
+            "elapsed_seconds": round(time.time() - t0, 2),
+        }
+
+    n_u, n_i = ds.interactions_shape()
+
+    if train_data:
+        train_mat, train_weights = ds.build_interactions(train_data)
+    else:
+        train_mat = coo_matrix((n_u, n_i), dtype=np.float32)
+        train_weights = coo_matrix((n_u, n_i), dtype=np.float32)
+
+    if test_data:
+        test_mat, _ = ds.build_interactions(test_data)
+    else:
+        test_mat = coo_matrix((n_u, n_i), dtype=np.float32)
+
+    user_feat_tuples = build_user_feature_tuples(candidates)
+    item_feat_tuples = build_item_feature_tuples(jobs)
+    user_features_mat = ds.build_user_features(
+        user_feat_tuples, normalize=False)
+    item_features_mat = ds.build_item_features(
+        item_feat_tuples, normalize=False)
+
+    eval_model = LightFM(
+        no_components=settings.MODEL_NO_COMPONENTS,
+        loss=settings.MODEL_LOSS,
+        learning_rate=settings.MODEL_LEARNING_RATE,
+        random_state=42,
+    )
+    eval_model.fit(
+        train_mat,
+        user_features=user_features_mat,
+        item_features=item_features_mat,
+        sample_weight=train_weights,
+        epochs=settings.MODEL_EPOCHS,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+
+    train_csr = train_mat.tocsr()
+    test_csr = test_mat.tocsr()
+
+    prec = precision_at_k(
+        eval_model, test_csr, train_interactions=train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, num_threads=settings.MODEL_NUM_THREADS,
+    )
+    rec = recall_at_k(
+        eval_model, test_csr, train_interactions=train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, num_threads=settings.MODEL_NUM_THREADS,
+    )
+    auc = auc_score(
+        eval_model, test_csr, train_interactions=train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+    rr = reciprocal_rank(
+        eval_model, test_csr, train_interactions=train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+
+    train_prec = precision_at_k(
+        eval_model, train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, num_threads=settings.MODEL_NUM_THREADS,
+    )
+    train_auc = auc_score(
+        eval_model, train_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        num_threads=settings.MODEL_NUM_THREADS,
+    )
+
+    coverage = _compute_coverage(
+        eval_model, test_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k, n_items=n_i,
+    )
+    hit_rate = _compute_hit_rate(
+        eval_model, train_csr, test_csr,
+        user_features=user_features_mat, item_features=item_features_mat,
+        k=k,
+    )
+
+    elapsed = time.time() - t0
+    metrics = {
+        "status": "success",
+        "mode": "train_test_split",
+        "test_ratio": test_ratio,
+        "k": k,
+        "n_train_interactions": len(train_data),
+        "n_test_interactions": len(test_data),
+        "n_users": len(all_user_ids),
+        "n_items": len(all_job_ids),
+        f"test_precision@{k}": round(_safe_mean(prec), 4),
+        f"test_recall@{k}": round(_safe_mean(rec), 4),
+        "test_auc": round(_safe_mean(auc), 4),
+        "test_mrr": round(_safe_mean(rr), 4),
+        f"test_hit_rate@{k}": round(hit_rate, 4),
+        f"test_coverage@{k}": round(coverage, 4),
+        f"train_precision@{k}": round(_safe_mean(train_prec), 4),
+        "train_auc": round(_safe_mean(train_auc), 4),
+        "elapsed_seconds": round(elapsed, 2),
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    logger.info("═══ EVALUATION complete in %.2fs ═══", elapsed)
+    return metrics
+
+
+if __name__ == "__main__":
+    import argparse
+    import asyncio
+    import json
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    parser = argparse.ArgumentParser(description="Đánh giá LightFM model")
+    parser.add_argument(
+        "--mode",
+        choices=["current", "split"],
+        default="current",
+        help="current = dùng model đã train; split = train/test split (default: current)",
+    )
+    parser.add_argument("--k", type=int, default=DEFAULT_K,
+                        help=f"Top-K (default: {DEFAULT_K})")
+    parser.add_argument("--test-ratio", type=float, default=DEFAULT_TEST_RATIO,
+                        help=f"Tỉ lệ test khi dùng mode=split (default: {DEFAULT_TEST_RATIO})")
+    args = parser.parse_args()
+
+    from app.core.database import connect_db, close_db
+
+    async def _main() -> None:
+        await connect_db()
+        try:
+            if args.mode == "current":
+                result = evaluate_current_model(k=args.k)
+            else:
+                result = evaluate_train_test_split(test_ratio=args.test_ratio, k=args.k)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        finally:
+            await close_db()
+
+    asyncio.run(_main())
+
+
+
+================================================
+FILE: app/services/recommendation/feature_engineering.py
+================================================
+"""
+Feature engineering: extract user-features and item-features for LightFM.
+
+SHARED NAMESPACE strategy:
+  - skill:xxx          — shared between user skills and job required skills
+  - province:xxx       — shared between user preferred locations and job location
+  - salary:xxx         — shared salary bucket
+  - category:xxx       — shared between user preferred categories and job category
+  - worktype:xxx       — shared between user work preferences and job work type
+  - contracttype:xxx   — shared between user contract preferences and job type
+  - experience:xxx     — shared between user experience level and job experience
+
+This enables LightFM to learn that e.g. a user with skill:python is likely
+to prefer jobs with skill:python — critical for cold-start scenarios.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from app.utils.text_utils import normalize_province, normalize_skill, salary_bucket
+
+logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Item (Job) features
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def extract_job_features(job: dict[str, Any]) -> list[str]:
+    """
+    Extract a list of feature tags from a single job document.
+
+    Returns:
+        List of feature strings, e.g. ["category:IT", "skill:python", ...]
+    """
+    features: list[str] = []
+
+    # ── Category (enum) ──────────────────────────────────────────────────────
+    cat = job.get("category")
+    if cat:
+        features.append(f"category:{cat}")
+
+    # ── Job type / contract type (enum) ──────────────────────────────────────
+    jtype = job.get("type")
+    if jtype:
+        features.append(f"contracttype:{jtype}")
+
+    # ── Work type (enum) ─────────────────────────────────────────────────────
+    wtype = job.get("workType")
+    if wtype:
+        features.append(f"worktype:{wtype}")
+
+    # ── Experience level (enum) ──────────────────────────────────────────────
+    exp = job.get("experience")
+    if exp:
+        features.append(f"experience:{exp}")
+
+    # ── Area (enum, optional) ────────────────────────────────────────────────
+    area = job.get("area")
+    if area:
+        features.append(f"area:{area}")
+
+    # ── Skills (free-text list) ──────────────────────────────────────────────
+    skills = job.get("skills") or []
+    for raw_skill in skills:
+        normed = normalize_skill(raw_skill)
+        if normed:
+            features.append(f"skill:{normed}")
+
+    # ── Location/province (free-text) ────────────────────────────────────────
+    location = job.get("location") or {}
+    province = location.get("province", "")
+    if province:
+        normed_prov = normalize_province(province)
+        if normed_prov:
+            features.append(f"province:{normed_prov}")
+
+    # ── Salary bucket ────────────────────────────────────────────────────────
+    min_sal = _parse_decimal(job.get("minSalary"))
+    max_sal = _parse_decimal(job.get("maxSalary"))
+    if min_sal or max_sal:
+        avg = 0.0
+        if min_sal and max_sal:
+            avg = (min_sal + max_sal) / 2
+        elif min_sal:
+            avg = min_sal
+        elif max_sal:
+            avg = max_sal
+        bucket = salary_bucket(avg)
+        features.append(f"salary:{bucket}")
+    else:
+        features.append("salary:negotiable")
+
+    return features
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# User (Candidate) features
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def extract_candidate_features(candidate: dict[str, Any]) -> list[str]:
+    """
+    Extract a list of feature tags from a single candidate profile document.
+
+    Returns:
+        List of feature strings using the shared namespace.
+    """
+    features: list[str] = []
+
+    # ── Skills (free-text) ───────────────────────────────────────────────────
+    skills = candidate.get("skills") or []
+    for skill_obj in skills:
+        name = skill_obj.get("name", "") if isinstance(
+            skill_obj, dict) else str(skill_obj)
+        normed = normalize_skill(name)
+        if normed:
+            features.append(f"skill:{normed}")
+
+    # ── Preferred categories (enum list) ─────────────────────────────────────
+    pref_cats = candidate.get("preferredCategories") or []
+    for cat in pref_cats:
+        if cat:
+            features.append(f"category:{cat}")
+
+    # ── Preferred locations (free-text provinces) ────────────────────────────
+    pref_locs = candidate.get("preferredLocations") or []
+    for loc in pref_locs:
+        province = loc.get("province", "") if isinstance(
+            loc, dict) else str(loc)
+        normed_prov = normalize_province(province)
+        if normed_prov:
+            features.append(f"province:{normed_prov}")
+
+    # ── Work preferences ─────────────────────────────────────────────────────
+    work_prefs = candidate.get("workPreferences") or {}
+
+    work_types = work_prefs.get("workTypes") or []
+    for wt in work_types:
+        if wt:
+            features.append(f"worktype:{wt}")
+
+    contract_types = work_prefs.get("contractTypes") or []
+    for ct in contract_types:
+        if ct:
+            features.append(f"contracttype:{ct}")
+
+    exp_levels = work_prefs.get("experienceLevel") or []
+    for el in exp_levels:
+        if el:
+            features.append(f"experience:{el}")
+
+    # ── Expected salary ──────────────────────────────────────────────────────
+    expected = candidate.get("expectedSalary") or {}
+    min_sal = expected.get("min", 0) or 0
+    max_sal = expected.get("max", 0) or 0
+    if min_sal or max_sal:
+        avg = 0.0
+        if min_sal and max_sal:
+            avg = (min_sal + max_sal) / 2
+        elif min_sal:
+            avg = min_sal
+        elif max_sal:
+            avg = max_sal
+        bucket = salary_bucket(avg)
+        features.append(f"salary:{bucket}")
+
+    return features
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Helpers to collect all unique feature names (for Dataset.fit)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def collect_all_feature_names(
+    jobs: list[dict[str, Any]],
+    candidates: list[dict[str, Any]],
+) -> tuple[set[str], set[str]]:
+    """
+    Scan all jobs and candidates to collect the set of unique feature tags.
+
+    Returns:
+        (user_feature_names, item_feature_names) — each a set of strings.
+    """
+    user_feature_names: set[str] = set()
+    item_feature_names: set[str] = set()
+
+    for job in jobs:
+        feats = extract_job_features(job)
+        item_feature_names.update(feats)
+
+    for cand in candidates:
+        feats = extract_candidate_features(cand)
+        user_feature_names.update(feats)
+
+    logger.info(
+        "Collected %d unique user features, %d unique item features",
+        len(user_feature_names),
+        len(item_feature_names),
+    )
+    return user_feature_names, item_feature_names
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Build feature tuples for Dataset.build_*_features()
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def build_user_feature_tuples(
+    candidates: list[dict[str, Any]],
+    user_id_field: str = "userId",
+) -> list[tuple[str, list[str]]]:
+    """Build list of (user_id, [feature_list]) for Dataset.build_user_features()."""
+    result = []
+    for cand in candidates:
+        uid = str(cand.get(user_id_field, cand.get("_id", "")))
+        feats = extract_candidate_features(cand)
+        if uid and feats:
+            result.append((uid, feats))
+    return result
+
+
+def build_item_feature_tuples(
+    jobs: list[dict[str, Any]],
+) -> list[tuple[str, list[str]]]:
+    """Build list of (item_id, [feature_list]) for Dataset.build_item_features()."""
+    result = []
+    for job in jobs:
+        jid = str(job.get("_id", ""))
+        feats = extract_job_features(job)
+        if jid and feats:
+            result.append((jid, feats))
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Internal helpers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _parse_decimal(value) -> float | None:
+    """Parse MongoDB Decimal128 or string salary values to float."""
+    if value is None:
+        return None
+    try:
+        return float(str(value))
+    except (ValueError, TypeError):
+        return None
+
+
+
+================================================
+FILE: app/services/recommendation/model_manager.py
+================================================
+"""
+Model manager: quản lý vòng đời LightFM model —
+training, partial updates, prediction, persistence.
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from datetime import datetime, timezone
+from typing import Any
+
+import joblib
+import numpy as np
+from lightfm import LightFM
+from lightfm.data import Dataset
+from scipy.sparse import coo_matrix
+
+from app.core.config import settings
+from app.services.recommendation.data_loader import (
+    get_popular_job_ids,
+    load_active_jobs,
+    load_candidates,
+    load_interactions,
+    load_interactions_since,
+)
+from app.services.recommendation.feature_engineering import (
+    build_item_feature_tuples,
+    build_user_feature_tuples,
+    collect_all_feature_names,
+    extract_candidate_features,
+)
+
+logger = logging.getLogger(__name__)
+
+_MODEL_FILE = "lightfm_model.joblib"
+_DATASET_FILE = "lightfm_dataset.joblib"
+_META_FILE = "lightfm_meta.joblib"
+_MATRICES_FILE = "lightfm_matrices.joblib"
+
+
+class RecommendationEngine:
+    """Quản lý toàn bộ pipeline LightFM recommendation."""
+
+    def __init__(self) -> None:
+        self.model: LightFM | None = None
+        self.dataset: Dataset | None = None
+        self.interactions_matrix = None
+        self.weights_matrix = None
+        self.user_features_matrix = None
+        self.item_features_matrix = None
+        self.applied_jobs: dict[str, set[str]] = {}
+        self.active_job_ids: list[str] = []
+        self.last_retrain_at: datetime | None = None
+        self.last_partial_at: datetime | None = None
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _build_interactions(self, ds: Dataset, weighted_interactions):
+        """Build interactions + weights matrices từ weighted data."""
+        user_map, _, item_map, _ = ds.mapping()
+        data = [
+            (uid, jid, w)
+            for uid, jid, w in weighted_interactions
+            if uid in user_map and jid in item_map
+        ]
+        if data:
+            return ds.build_interactions(data), len(data)
+
+        n_u, n_i = ds.interactions_shape()
+        empty = coo_matrix((n_u, n_i), dtype=np.float32)
+        return (empty, empty), 0
+
+    def _build_feature_matrices(self, ds: Dataset, jobs, candidates):
+        """Build user & item feature matrices."""
+        user_feat_tuples = build_user_feature_tuples(candidates)
+        item_feat_tuples = build_item_feature_tuples(jobs)
+        user_mat = ds.build_user_features(user_feat_tuples, normalize=True)
+        item_mat = ds.build_item_features(item_feat_tuples, normalize=True)
+        return user_mat, item_mat
+
+    def _predict_scores(self, user_idx: int, item_map: dict) -> np.ndarray:
+        """Predict scores cho 1 user trên tất cả items."""
+        item_ids = np.arange(len(item_map), dtype=np.int32)
+        return self.model.predict(
+            user_ids=user_idx,
+            item_ids=item_ids,
+            user_features=self.user_features_matrix,
+            item_features=self.item_features_matrix,
+        )
+
+    def _rank_results(
+        self, scores: np.ndarray, item_map: dict,
+        n: int, exclude_ids: set[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Sắp xếp scores → top-N results, chỉ lấy active jobs."""
+        inv_map = {v: k for k, v in item_map.items()}
+        active_set = set(self.active_job_ids)
+        exclude = exclude_ids or set()
+
+        results = []
+        for idx in np.argsort(-scores):
+            ext_id = inv_map.get(int(idx))
+            if ext_id is None or ext_id not in active_set:
+                continue
+            if ext_id in exclude:
+                continue
+            results.append(
+                {"jobId": ext_id, "score": round(float(scores[idx]), 4)})
+            if len(results) >= n:
+                break
+        return results
+
+    # ── Full retrain ──────────────────────────────────────────────────────────
+
+    def full_retrain(self) -> dict[str, Any]:
+        """Train model từ đầu với toàn bộ data."""
+        t0 = time.time()
+        logger.info("═══ Starting FULL RETRAIN ═══")
+
+        # 1. Load data
+        weighted, user_ids, job_ids, applied = load_interactions()
+        jobs = load_active_jobs()
+        candidates = load_candidates(user_ids=user_ids, include_onboarded=True)
+
+        if not jobs:
+            logger.warning("No active jobs — skipping retrain.")
+            return {"status": "skipped", "reason": "no_active_jobs"}
+
+        all_job_ids = [str(j["_id"]) for j in jobs]
+        all_user_ids = {str(c.get("userId", c.get("_id", "")))
+                        for c in candidates}
+        all_user_ids.update(user_ids)
+
+        # 2. Build dataset + features
+        user_feat_names, item_feat_names = collect_all_feature_names(
+            jobs, candidates)
+
+        ds = Dataset()
+        ds.fit(
+            users=all_user_ids,
+            items=all_job_ids,
+            user_features=user_feat_names,
+            item_features=item_feat_names,
+        )
+
+        (interactions_mat, weights_mat), n_inter = self._build_interactions(ds, weighted)
+        user_features_mat, item_features_mat = self._build_feature_matrices(
+            ds, jobs, candidates)
+
+        # 3. Train
+        model = LightFM(
+            no_components=settings.MODEL_NO_COMPONENTS,
+            loss=settings.MODEL_LOSS,
+            learning_rate=settings.MODEL_LEARNING_RATE,
+            random_state=42,
+        )
+        model.fit(
+            interactions_mat,
+            user_features=user_features_mat,
+            item_features=item_features_mat,
+            sample_weight=weights_mat,
+            epochs=settings.MODEL_EPOCHS,
+            num_threads=settings.MODEL_NUM_THREADS,
+        )
+
+        # 4. Lưu state
+        now = datetime.now(timezone.utc)
+        self.model = model
+        self.dataset = ds
+        self.interactions_matrix = interactions_mat
+        self.weights_matrix = weights_mat
+        self.user_features_matrix = user_features_mat
+        self.item_features_matrix = item_features_mat
+        self.applied_jobs = applied
+        self.active_job_ids = all_job_ids
+        self.last_retrain_at = now
+        self.last_partial_at = now
+
+        self._save_to_disk()
+
+        elapsed = time.time() - t0
+        stats = {
+            "status": "success",
+            "elapsed_seconds": round(elapsed, 2),
+            "n_users": len(all_user_ids),
+            "n_items": len(all_job_ids),
+            "n_interactions": n_inter,
+            "n_user_features": len(user_feat_names),
+            "n_item_features": len(item_feat_names),
+            "retrained_at": now.isoformat(),
+        }
+        logger.info("═══ FULL RETRAIN complete in %.2fs ═══ %s",
+                    elapsed, stats)
+        return stats
+
+    # ── Partial update ────────────────────────────────────────────────────────
+
+    def partial_update(self) -> dict[str, Any]:
+        """
+        Incremental update: CHỈ học interaction mới của User cũ và Job cũ đã biết.
+
+        - Mỗi 30 phút (partial_update): fine-tune trên interaction của entity cũ.
+          User/Job mới bị lờ đi — họ được _cold_start_predict phục vụ tạm.
+        - 2:00 AM (full_retrain): chính thức kết nạp mọi entity mới vào model.
+        """
+        if not self.is_ready:
+            logger.warning("No model loaded — running full retrain.")
+            return self.full_retrain()
+
+        since = self.last_partial_at or self.last_retrain_at
+        if since is None:
+            return self.full_retrain()
+
+        t0 = time.time()
+        logger.info("─── Starting PARTIAL UPDATE (since %s) ───", since)
+
+        new_interactions, _, _, new_applied = load_interactions_since(since)
+
+        if not new_interactions:
+            logger.info("No new interactions — skipping.")
+            self.last_partial_at = datetime.now(timezone.utc)
+            return {"status": "skipped", "reason": "no_new_data"}
+
+        user_map, _, item_map, _ = self.dataset.mapping()
+        valid_interactions = [
+            (uid, jid, w) for uid, jid, w in new_interactions
+            if uid in user_map and jid in item_map
+        ]
+
+        if not valid_interactions:
+            logger.info(
+                "All new interactions involve unknown entities — skipping fit_partial.")
+            self.last_partial_at = datetime.now(timezone.utc)
+            return {"status": "skipped", "reason": "only_new_entities_interactions"}
+
+        (interactions_mat, weights_mat), n_valid = self._build_interactions(
+            self.dataset, valid_interactions
+        )
+
+        self.model.fit_partial(
+            interactions_mat,
+            user_features=self.user_features_matrix,
+            item_features=self.item_features_matrix,
+            sample_weight=weights_mat,
+            epochs=settings.MODEL_PARTIAL_EPOCHS,
+            num_threads=settings.MODEL_NUM_THREADS,
+        )
+
+        # Cập nhật applied_jobs tăng dần
+        for uid, jids in new_applied.items():
+            if uid in user_map:
+                self.applied_jobs.setdefault(uid, set()).update(jids)
+
+        self.last_partial_at = datetime.now(timezone.utc)
+        self._save_to_disk()
+
+        elapsed = time.time() - t0
+        stats = {
+            "status": "success",
+            "elapsed_seconds": round(elapsed, 2),
+            "total_new_interactions": len(new_interactions),
+            "valid_interactions_trained": n_valid,
+        }
+        logger.info("─── PARTIAL UPDATE complete in %.2fs ─── %s",
+                    elapsed, stats)
+        return stats
+
+    # ── Prediction ────────────────────────────────────────────────────────────
+
+    def predict(
+        self,
+        user_id: str,
+        n: int | None = None,
+        exclude_applied: bool = True,
+    ) -> list[dict[str, Any]]:
+        """Top-N job recommendations cho 1 user."""
+        if n is None:
+            n = settings.TOP_N
+
+        if not self.is_ready:
+            logger.warning("Model not loaded — returning popular jobs.")
+            return self._popular_fallback(n)
+
+        user_map, _, item_map, _ = self.dataset.mapping()
+
+        # User chưa có trong model → cold-start
+        if user_id not in user_map:
+            return self._cold_start_predict(user_id, n)
+
+        # Predict
+        scores = self._predict_scores(user_map[user_id], item_map)
+
+        # Exclude applied jobs nếu cần
+        exclude = self.applied_jobs.get(
+            user_id, set()) if exclude_applied else set()
+        return self._rank_results(scores, item_map, n, exclude)
+
+    def _cold_start_predict(self, user_id: str, n: int) -> list[dict[str, Any]]:
+        """
+        Cold-start: user mới chưa có trong model.
+        Tính user embedding thủ công từ profile features,
+        rồi dot product với item embeddings để ra scores.
+        """
+        logger.info("Cold-start prediction for user %s", user_id)
+
+        candidates = load_candidates(
+            user_ids={user_id}, include_onboarded=False)
+        if not candidates:
+            logger.info(
+                "No profile for user %s — returning popular jobs", user_id)
+            return self._popular_fallback(n)
+
+        cand = candidates[0]
+        cand_feats = extract_candidate_features(cand)
+        if not cand_feats:
+            return self._popular_fallback(n)
+
+        _, user_feat_map, _, _ = self.dataset.mapping()
+
+        feat_indices = []
+        for feat in cand_feats:
+            if feat in user_feat_map:
+                feat_indices.append(user_feat_map[feat])
+
+        if not feat_indices:
+            logger.info("No matching features for user %s", user_id)
+            return self._popular_fallback(n)
+
+        feat_embeddings = self.model.user_embeddings[feat_indices]
+        user_embedding = feat_embeddings.mean(axis=0)
+        user_bias = self.model.user_biases[feat_indices].mean()
+
+        _, _, item_map, _ = self.dataset.mapping()
+
+        item_embeddings = self.model.get_item_representations(
+            self.item_features_matrix)
+        item_biases = item_embeddings[0]
+        item_vectors = item_embeddings[1]
+
+        scores = item_vectors.dot(user_embedding) + user_bias + item_biases
+
+        return self._rank_results(scores, item_map, n)
+
+    def _popular_fallback(self, n: int) -> list[dict[str, Any]]:
+        """Fallback: trả về popular jobs khi không predict được."""
+        try:
+            popular = get_popular_job_ids(limit=n)
+            return [{"jobId": jid, "score": 0.0} for jid in popular]
+        except Exception as e:
+            logger.error("Failed to get popular jobs: %s", e)
+            return []
+
+    # ── Persistence ───────────────────────────────────────────────────────────
+
+    def _save_to_disk(self) -> None:
+        """Lưu model, dataset, metadata, và feature matrices xuống disk."""
+        model_dir = settings.model_path
+        model_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            joblib.dump(self.model, model_dir / _MODEL_FILE)
+            joblib.dump(self.dataset, model_dir / _DATASET_FILE)
+            meta = {
+                "active_job_ids": self.active_job_ids,
+                "applied_jobs": {k: list(v) for k, v in self.applied_jobs.items()},
+                "last_retrain_at": self.last_retrain_at,
+                "last_partial_at": self.last_partial_at,
+            }
+            joblib.dump(meta, model_dir / _META_FILE)
+            matrices = {
+                "user_features_matrix": self.user_features_matrix,
+                "item_features_matrix": self.item_features_matrix,
+            }
+            joblib.dump(matrices, model_dir / _MATRICES_FILE)
+            logger.info("Model saved to %s", model_dir)
+        except Exception as e:
+            logger.error("Failed to save model: %s", e)
+
+    def load_from_disk(self) -> bool:
+        """Load model từ disk. Returns True nếu thành công."""
+        model_dir = settings.model_path
+        model_file = model_dir / _MODEL_FILE
+        dataset_file = model_dir / _DATASET_FILE
+        meta_file = model_dir / _META_FILE
+        matrices_file = model_dir / _MATRICES_FILE
+
+        if not model_file.exists() or not dataset_file.exists():
+            logger.info("No saved model found at %s", model_dir)
+            return False
+
+        try:
+            model = joblib.load(model_file)
+            ds = joblib.load(dataset_file)
+            meta = joblib.load(meta_file) if meta_file.exists() else {}
+
+            if matrices_file.exists():
+                matrices = joblib.load(matrices_file)
+                user_features_mat = matrices["user_features_matrix"]
+                item_features_mat = matrices["item_features_matrix"]
+                logger.info("Loaded feature matrices from disk")
+            else:
+                logger.warning("Matrices file not found, rebuilding")
+                jobs = load_active_jobs()
+                candidates = load_candidates(include_onboarded=True)
+                user_features_mat, item_features_mat = self._build_feature_matrices(
+                    ds, jobs, candidates)
+
+            all_interactions, _, _, applied = load_interactions()
+            (interactions_mat, weights_mat), _ = self._build_interactions(
+                ds, all_interactions)
+
+            self.model = model
+            self.dataset = ds
+            self.interactions_matrix = interactions_mat
+            self.weights_matrix = weights_mat
+            self.user_features_matrix = user_features_mat
+            self.item_features_matrix = item_features_mat
+            self.applied_jobs = applied
+            self.active_job_ids = meta.get("active_job_ids", [])
+            self.last_retrain_at = meta.get("last_retrain_at")
+            self.last_partial_at = meta.get("last_partial_at")
+
+            logger.info("Model loaded from %s", model_dir)
+            return True
+        except Exception as e:
+            logger.error("Failed to load model from disk: %s", e)
+            return False
+
+    # ── Status ────────────────────────────────────────────────────────────────
+
+    @property
+    def is_ready(self) -> bool:
+        return self.model is not None and self.dataset is not None
+
+    def get_status(self) -> dict[str, Any]:
+        if not self.is_ready:
+            return {"ready": False}
+        user_map, _, item_map, _ = self.dataset.mapping()
+        return {
+            "ready": True,
+            "n_users": len(user_map),
+            "n_items": len(item_map),
+            "n_active_jobs": len(self.active_job_ids),
+            "last_retrain_at": self.last_retrain_at.isoformat() if self.last_retrain_at else None,
+            "last_partial_at": self.last_partial_at.isoformat() if self.last_partial_at else None,
+        }
+
+
+# Singleton
+engine = RecommendationEngine()
+
+
+
+================================================
+FILE: app/services/recommendation/scheduler.py
+================================================
+"""
+APScheduler setup for periodic model retraining.
+
+- full_retrain : runs daily at a configured hour (default 2:00 AM)
+- partial_update: runs every N minutes (default 30)
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from concurrent.futures import ThreadPoolExecutor
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
+
+from app.core.config import settings
+from app.services.recommendation.model_manager import engine
+
+logger = logging.getLogger(__name__)
+
+# Thread pool for CPU-bound training work
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="retrain")
+
+scheduler = AsyncIOScheduler()
+
+
+def _run_full_retrain() -> None:
+    """Synchronous wrapper executed in the thread pool."""
+    try:
+        result = engine.full_retrain()
+        logger.info("Scheduled full retrain result: %s", result)
+    except Exception:
+        logger.exception("Scheduled full retrain FAILED")
+
+
+def _run_partial_update() -> None:
+    """Synchronous wrapper executed in the thread pool."""
+    try:
+        result = engine.partial_update()
+        logger.info("Scheduled partial update result: %s", result)
+    except Exception:
+        logger.exception("Scheduled partial update FAILED")
+
+
+async def _async_full_retrain() -> None:
+    """Run full retrain in a thread so we don't block the event loop."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(_executor, _run_full_retrain)
+
+
+async def _async_partial_update() -> None:
+    """Run partial update in a thread so we don't block the event loop."""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(_executor, _run_partial_update)
+
+
+def start_scheduler() -> None:
+    """Register jobs and start the APScheduler."""
+    # Daily full retrain
+    scheduler.add_job(
+        _async_full_retrain,
+        trigger=CronTrigger(
+            hour=settings.RETRAIN_HOUR,
+            minute=settings.RETRAIN_MINUTE,
+        ),
+        id="full_retrain",
+        name="Daily full retrain",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # Periodic partial update
+    scheduler.add_job(
+        _async_partial_update,
+        trigger=IntervalTrigger(
+            minutes=settings.PARTIAL_UPDATE_INTERVAL_MINUTES,
+        ),
+        id="partial_update",
+        name="Periodic partial update",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    scheduler.start()
+    logger.info(
+        "Scheduler started — full retrain at %02d:%02d daily, "
+        "partial update every %d minutes",
+        settings.RETRAIN_HOUR,
+        settings.RETRAIN_MINUTE,
+        settings.PARTIAL_UPDATE_INTERVAL_MINUTES,
+    )
+
+
+def stop_scheduler() -> None:
+    """Gracefully shut down the scheduler."""
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("Scheduler stopped")
+
+
+
+================================================
+FILE: app/utils/__init__.py
+================================================
+
+
+
+================================================
+FILE: app/utils/text_utils.py
+================================================
+"""
+Utilities for normalizing free-text fields (skills, provinces, etc.)
+so that user features and item features share the same namespace.
+"""
+
+import re
+
+from unidecode import unidecode
+
+# ── Skill synonym mapping ────────────────────────────────────────────────────
+# Maps common alternative names → canonical form (all lowercase).
+SKILL_SYNONYMS: dict[str, str] = {
+    "js": "javascript",
+    "reactjs": "react",
+    "react.js": "react",
+    "react js": "react",
+    "vuejs": "vue",
+    "vue.js": "vue",
+    "vue js": "vue",
+    "angularjs": "angular",
+    "angular.js": "angular",
+    "angular js": "angular",
+    "nodejs": "node.js",
+    "node": "node.js",
+    "node js": "node.js",
+    "nextjs": "next.js",
+    "next js": "next.js",
+    "expressjs": "express",
+    "express.js": "express",
+    "express js": "express",
+    "typescript": "typescript",
+    "ts": "typescript",
+    "py": "python",
+    "python3": "python",
+    "python 3": "python",
+    "c#": "csharp",
+    "c sharp": "csharp",
+    "c++": "cpp",
+    "cplusplus": "cpp",
+    "c plus plus": "cpp",
+    "golang": "go",
+    "postgres": "postgresql",
+    "mongo": "mongodb",
+    "mysql": "mysql",
+    "mssql": "sql server",
+    "ms sql": "sql server",
+    "aws": "amazon web services",
+    "gcp": "google cloud platform",
+    "k8s": "kubernetes",
+    "docker compose": "docker-compose",
+    "ml": "machine learning",
+    "dl": "deep learning",
+    "ai": "artificial intelligence",
+    "nlp": "natural language processing",
+    "cv": "computer vision",
+    "html5": "html",
+    "css3": "css",
+    "scss": "sass",
+    "tailwindcss": "tailwind css",
+    "tailwind": "tailwind css",
+    "flutter": "flutter",
+    "react native": "react-native",
+    "reactnative": "react-native",
+    "rn": "react-native",
+    ".net": "dotnet",
+    "dot net": "dotnet",
+    "asp.net": "aspnet",
+    "asp net": "aspnet",
+    "spring boot": "spring-boot",
+    "springboot": "spring-boot",
+}
+
+# ── Province normalization mapping ───────────────────────────────────────────
+# Maps various Vietnamese province string representations → canonical slug.
+_PROVINCE_RAW_MAP: dict[str, str] = {
+    # Ho Chi Minh
+    "hồ chí minh": "ho_chi_minh",
+    "ho chi minh": "ho_chi_minh",
+    "tp.hcm": "ho_chi_minh",
+    "tp hcm": "ho_chi_minh",
+    "tphcm": "ho_chi_minh",
+    "tp. hồ chí minh": "ho_chi_minh",
+    "tp hồ chí minh": "ho_chi_minh",
+    "thành phố hồ chí minh": "ho_chi_minh",
+    "thanh pho ho chi minh": "ho_chi_minh",
+    "sài gòn": "ho_chi_minh",
+    "sai gon": "ho_chi_minh",
+    "saigon": "ho_chi_minh",
+    "hcm": "ho_chi_minh",
+    # Ha Noi
+    "hà nội": "ha_noi",
+    "ha noi": "ha_noi",
+    "hanoi": "ha_noi",
+    "hn": "ha_noi",
+    "tp. hà nội": "ha_noi",
+    "tp hà nội": "ha_noi",
+    "thành phố hà nội": "ha_noi",
+    # Da Nang
+    "đà nẵng": "da_nang",
+    "da nang": "da_nang",
+    "danang": "da_nang",
+    "tp đà nẵng": "da_nang",
+    "tp. đà nẵng": "da_nang",
+    # Hai Phong
+    "hải phòng": "hai_phong",
+    "hai phong": "hai_phong",
+    "haiphong": "hai_phong",
+    # Can Tho
+    "cần thơ": "can_tho",
+    "can tho": "can_tho",
+    "cantho": "can_tho",
+    # Binh Duong
+    "bình dương": "binh_duong",
+    "binh duong": "binh_duong",
+    # Dong Nai
+    "đồng nai": "dong_nai",
+    "dong nai": "dong_nai",
+    # Khanh Hoa (Nha Trang)
+    "khánh hòa": "khanh_hoa",
+    "khanh hoa": "khanh_hoa",
+    "nha trang": "khanh_hoa",
+    # Thua Thien Hue
+    "thừa thiên huế": "thua_thien_hue",
+    "thua thien hue": "thua_thien_hue",
+    "huế": "thua_thien_hue",
+    "hue": "thua_thien_hue",
+    # Bac Ninh
+    "bắc ninh": "bac_ninh",
+    "bac ninh": "bac_ninh",
+    # Quang Ninh
+    "quảng ninh": "quang_ninh",
+    "quang ninh": "quang_ninh",
+    # Long An
+    "long an": "long_an",
+    # Ba Ria - Vung Tau
+    "bà rịa - vũng tàu": "ba_ria_vung_tau",
+    "ba ria vung tau": "ba_ria_vung_tau",
+    "vũng tàu": "ba_ria_vung_tau",
+    "vung tau": "ba_ria_vung_tau",
+    # Lam Dong (Da Lat)
+    "lâm đồng": "lam_dong",
+    "lam dong": "lam_dong",
+    "đà lạt": "lam_dong",
+    "da lat": "lam_dong",
+}
+
+
+def normalize_skill(raw: str) -> str:
+    """
+    Normalize a skill string:
+    1. Strip whitespace, lowercase
+    2. Remove special chars except . - + #
+    3. Lookup synonym table
+    4. Return canonical slug
+    """
+    if not raw:
+        return ""
+    s = raw.strip().lower()
+    # Remove chars that are not alphanumeric, space, dot, dash, plus, hash
+    s = re.sub(r"[^\w\s.\-+#]", "", s)
+    # Collapse multiple spaces
+    s = re.sub(r"\s+", " ", s).strip()
+    # Synonym lookup
+    return SKILL_SYNONYMS.get(s, s)
+
+
+def normalize_province(raw: str) -> str:
+    """
+    Normalize a Vietnamese province name to a canonical slug.
+    Falls back to unidecode + underscore form if not in the lookup table.
+    """
+    if not raw:
+        return ""
+    s = raw.strip().lower()
+    # Try direct lookup
+    if s in _PROVINCE_RAW_MAP:
+        return _PROVINCE_RAW_MAP[s]
+    # Try after removing diacritics
+    s_ascii = unidecode(s).lower().strip()
+    if s_ascii in _PROVINCE_RAW_MAP:
+        return _PROVINCE_RAW_MAP[s_ascii]
+    # Fallback: transliterate and slugify
+    slug = re.sub(r"[^a-z0-9]+", "_", s_ascii).strip("_")
+    return slug
+
+
+def salary_bucket(amount: float | None) -> str:
+    """
+    Convert a salary amount (VND) into a categorical bucket string.
+    Returns 'negotiable' if amount is None or 0.
+    """
+    if amount is None or amount <= 0:
+        return "negotiable"
+    # Normalize to millions for bucketing
+    amt = float(amount)
+    if amt >= 1_000_000:
+        amt = amt / 1_000_000  # convert to millions
+    # amt is now in millions
+    if amt < 5:
+        return "0_5m"
+    elif amt < 10:
+        return "5m_10m"
+    elif amt < 15:
+        return "10m_15m"
+    elif amt < 20:
+        return "15m_20m"
+    elif amt < 30:
+        return "20m_30m"
+    elif amt < 50:
+        return "30m_50m"
+    else:
+        return "50m_plus"
+
+
+
+================================================
+FILE: models/lightfm_dataset.joblib
+================================================
+[Non-text file]
+
+
+================================================
+FILE: models/lightfm_matrices.joblib
+================================================
+[Non-text file]
+
+
+================================================
+FILE: models/lightfm_meta.joblib
+================================================
+[Non-text file]
+
+
+================================================
+FILE: models/lightfm_model.joblib
+================================================
+[Non-text file]
+
+
+================================================
+FILE: scripts/evaluate_model.py
+================================================
+#!/usr/bin/env python
+"""
+Standalone script đánh giá model recommendation.
+
+KHÔNG thay đổi code hay model đang chạy — chỉ đọc và đánh giá.
+
+Modes:
+  current  — Đánh giá model đã train (đang serve) trên toàn bộ interactions.
+             Cho train metrics, nhanh (~vài giây).
+  split    — Train/test split: train model tạm, đánh giá trên test set.
+             Cho test metrics chính xác hơn (~vài phút).
+
+Usage:
+  python scripts/evaluate_model.py                        # mode=current, k=10
+  python scripts/evaluate_model.py --mode split           # train/test split
+  python scripts/evaluate_model.py --mode split --k 20    # top-20
+  python scripts/evaluate_model.py --mode split --ratio 0.3  # 30% test
+  python scripts/evaluate_model.py --mode current --k 5   # top-5 train metrics
+"""
+
+import argparse
+import asyncio
+import json
+import logging
+import sys
+from pathlib import Path
+
+# Thêm project root vào PATH
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.core.database import close_db, connect_db
+from app.services.recommendation.evaluator import (
+    evaluate_current_model,
+    evaluate_train_test_split,
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Đánh giá chất lượng model recommendation (standalone).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                          # Quick eval (train metrics)
+  %(prog)s --mode split             # Offline eval (train/test split)
+  %(prog)s --mode split --k 20      # Top-20 metrics
+  %(prog)s --mode split --ratio 0.3 # 30%% test set
+
+Metrics giải thích:
+  precision@K   Tỷ lệ items gợi ý đúng trong top-K
+  recall@K      Tỷ lệ items đúng được gợi ý trong top-K
+  auc           Khả năng rank positive > negative (0.5 = random)
+  mrr           1/rank của item đúng đầu tiên
+  hit_rate@K    %% users có ≥1 hit trong top-K
+  coverage@K    %% catalog items xuất hiện trong top-K recommendations
+        """,
+    )
+    parser.add_argument(
+        "--mode", choices=["current", "split"], default="current",
+        help="Chế độ đánh giá: 'current' (train metrics) hoặc 'split' (train/test). Default: current",
+    )
+    parser.add_argument(
+        "--k", type=int, default=10,
+        help="Top-K cho precision/recall/hit_rate. Default: 10",
+    )
+    parser.add_argument(
+        "--ratio", type=float, default=0.2,
+        help="Tỷ lệ test set (chỉ dùng với --mode split). Default: 0.2",
+    )
+    parser.add_argument(
+        "--json", action="store_true",
+        help="Output raw JSON (cho CI/pipeline).",
+    )
+    args = parser.parse_args()
+
+    results = asyncio.run(_run(args))
+
+    # ── Output ────────────────────────────────────────────────────────────────
+    if args.json:
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+    else:
+        _pretty_print(results, args.mode, args.k)
+
+    # Exit code: 0 = success, 1 = error/skipped
+    status = results.get("status", "error")
+    sys.exit(0 if status == "success" else 1)
+
+
+async def _run(args) -> dict:
+    await connect_db()
+    try:
+        if args.mode == "current":
+            return evaluate_current_model(k=args.k)
+        else:
+            return evaluate_train_test_split(test_ratio=args.ratio, k=args.k)
+    finally:
+        await close_db()
+
+
+def _pretty_print(results: dict, mode: str, k: int):
+    """In kết quả dạng bảng dễ đọc."""
+    status = results.get("status", "unknown")
+
+    if status != "success":
+        print(f"\n⚠  Evaluation {status}: {results.get('reason', 'unknown')}")
+        return
+
+    print("\n" + "═" * 60)
+    if mode == "current":
+        print("  MODEL EVALUATION — Current Model (Train Metrics)")
+    else:
+        print("  MODEL EVALUATION — Train/Test Split (Offline)")
+    print("═" * 60)
+
+    # Data info
+    if mode == "split":
+        print(f"\n  Data split:")
+        print(f"    Train interactions : {results.get('n_train_interactions', '?')}")
+        print(f"    Test interactions  : {results.get('n_test_interactions', '?')}")
+        print(f"    Test ratio         : {results.get('test_ratio', '?')}")
+    print(f"    Users              : {results.get('n_users', results.get('n_users_evaluated', '?'))}")
+    print(f"    Items              : {results.get('n_items', '?')}")
+
+    # Metrics
+    print(f"\n  {'Metric':<25} {'Value':>10}")
+    print(f"  {'─' * 25} {'─' * 10}")
+
+    if mode == "current":
+        _print_metric(f"Precision@{k}", results.get(f"precision@{k}"))
+        _print_metric(f"Recall@{k}", results.get(f"recall@{k}"))
+        _print_metric("AUC", results.get("auc"))
+        _print_metric("MRR", results.get("mrr"))
+    else:
+        # Test metrics
+        print(f"  {'[Test Set]':<25}")
+        _print_metric(f"Precision@{k}", results.get(f"test_precision@{k}"))
+        _print_metric(f"Recall@{k}", results.get(f"test_recall@{k}"))
+        _print_metric("AUC", results.get("test_auc"))
+        _print_metric("MRR", results.get("test_mrr"))
+        _print_metric(f"Hit Rate@{k}", results.get(f"test_hit_rate@{k}"))
+        _print_metric(f"Coverage@{k}", results.get(f"test_coverage@{k}"))
+
+        # Train metrics
+        print(f"\n  {'[Train Set — overfitting check]':<25}")
+        _print_metric(f"Precision@{k}", results.get(f"train_precision@{k}"))
+        _print_metric("AUC", results.get("train_auc"))
+
+    print(f"\n  Elapsed: {results.get('elapsed_seconds', '?')}s")
+    print(f"  Evaluated at: {results.get('evaluated_at', '?')}")
+    print("═" * 60 + "\n")
+
+
+def _print_metric(name: str, value):
+    if value is not None:
+        v = float(value)
+        if "AUC" in name:
+            indicator = "✓" if v > 0.7 else ("~" if v > 0.55 else "✗")
+        elif "Coverage" in name:
+            indicator = "✓" if v > 0.3 else ("~" if v > 0.1 else "✗")
+        else:
+            indicator = "✓" if v > 0.1 else ("~" if v > 0.02 else "✗")
+        print(f"  {indicator} {name:<23} {v:>10.4f}")
+    else:
+        print(f"    {name:<23} {'N/A':>10}")
+
+
+if __name__ == "__main__":
+    main()
+
+
