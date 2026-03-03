@@ -198,9 +198,58 @@ return get_popular_job_ids(n=TOP_N)
 
 ### 6.4 Filtering
 
-- Chỉ trả về **active jobs** (`active_job_ids` được cache lúc retrain)
+- Chỉ trả về **active jobs** (`active_job_ids` được cập nhật lúc retrain)
 - Loại bỏ jobs user đã **APPLY** (`applied_jobs[user_id]`)
-- Top **N** jobs (default `TOP_N=20`, configurable)
+- Loại bỏ jobs user đã **SAVE** (`saved_jobs[user_id]`) — user đã bookmark = đã biết
+- Top **N** jobs (default `TOP_N=20`, configurable via env)
+
+## 6b. Item-Item Collaborative Filtering (Similar Jobs)
+
+> Endpoint: `GET /similar-jobs-cf/{job_id}?userId=...`
+>
+> Dùng trong trang chi tiết việc — gợi ý: *"việc làm mà người có cùng sở thích cũng quan tâm"
+
+### Lý do khác Vector Search
+
+| Đặc điểm | `/embeddings/similar-jobs` (Vector Search) | `/recommendation/similar-jobs-cf` (LightFM CF) |
+|---|---|---|
+| Dựa vào | Nội dung mô tả JD (tự nhiparticle by vector embed) | Hành vi người dùng (VIEW/SAVE/APPLY) |
+| Tính tương đồng | Ngữ nghĩa / kỹ thuật trong mô tả | Collaborative signal — cùng nhóm user quan tâm |
+| Ví dụ | "Python Senior" ~ "Python Backend 5yr" | "Python Backend" ~ "DevOps" (nếu cùng user xem cả hai) |
+| Cold job | Hoạt động nếu có embedding | Fallback sang popular |
+
+### Thuật toán
+
+```python
+# 1. Lấy item embeddings từ LightFM
+item_biases, item_embeddings = model.get_item_representations(item_features_matrix)
+
+# 2. Cosine similarity (uận nạp collaborative signal)
+target = item_embeddings[item_map[job_id]]
+cosine_sim = item_embeddings @ target / (|item_embeddings| × |target|)
+
+# 3. Normalize bias về [0, 1]
+norm_bias = (item_biases - min) / (max - min)
+
+# 4. Blend: collaborative signal 85% + popularity 15%
+final_score = 0.85 × cosine_sim + 0.15 × norm_bias
+
+# 5. Exclude target job + jobs user đã APPLY/SAVE (nếu có userId)
+# 6. Filter active jobs, lấy top-N
+```
+
+### Tại sao kết hợp bias?
+
+Item bias trong LightFM phản ánh *intrinsic popularity* của job (mức độ được nhiều user tương tác). Blend 15% giúp tránh recommend jobs ít ai biết dù embedding gần, nhưng vẫn giữ collaborative signal là chính.
+
+### Exclusion logic
+
+Nếu `userId` được truyền:
+- Exclude jobs user đã **APPLY** (`applied_jobs[userId]`)
+- Exclude jobs user đã **SAVE** (`saved_jobs[userId]`)
+- Exclude bản thân `job_id` đang xem
+
+Nguồn dữ liệu `saved_jobs` được load từ `interactions` collection cùng với `applied_jobs` và được cập nhật incremental qua `partial_update`.
 
 ---
 

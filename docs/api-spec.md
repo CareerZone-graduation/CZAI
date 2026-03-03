@@ -268,6 +268,114 @@ Lấy danh sách gợi ý việc làm cá nhân hóa cho user.
 
 ---
 
+### `GET /recommendations/candidates/{job_id}`
+
+Lấy danh sách gợi ý ứng viên phù hợp cho một công việc cụ thể. Kết hợp Vector Search (Retrieval), MaxSim Re-ranking và Rule-based Scoring.
+
+Chi tiết về thuật toán và kiến trúc scoring, xem thêm tại: [candidate-recommendation-spec.md](./candidate-recommendation-spec.md)
+
+**Path params:**
+- `job_id` — MongoDB ObjectId của job cần tìm ứng viên
+
+**Query params:**
+- `page` (int, default: `1`) — Số trang
+- `limit` (int, default: `10`) — Số lượng ứng viên trả về mỗi trang
+- `minScore` (float, default: `0.5`) — Điểm chẩn chỉnh tối thiểu (0.0 - 1.0) để lọc ứng viên
+
+**Response:**
+```json
+{
+  "jobId": "67b9c1d...",
+  "recommendations": [
+    {
+      "userId": "user-id-1",
+      "candidateProfileId": "profile-id-1",
+      "score": 0.85,
+      "similarityPercentage": 85,
+      "matchedSkills": ["React", "Node.js"],
+      "experienceYears": 3,
+      "matchReasons": [
+        {
+          "type": "ai_match",
+          "value": "Phù hợp với mô tả công việc (AI đánh giá)",
+          "weight": 35
+        },
+        {
+          "type": "skill_match",
+          "value": "Khớp 2 kỹ năng: React, Node.js",
+          "weight": 16
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 45,
+    "limit": 10,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  },
+  "source": "vector_search_maxsim_rulebased"
+}
+```
+
+---
+
+### `GET /recommendation/similar-jobs-cf/{job_id}`
+
+Gợi ý việc làm tương tự bằng **Item-Item Collaborative Filtering (LightFM)**.
+
+> Câu trả lời cho: *"việc làm mà người có cùng sở thích với bạn cũng quan tâm"*
+>
+> Khác với `/embeddings/similar-jobs` (vector search trên nội dung mô tả JD),
+> endpoint này dùng item embeddings học từ **hành vi người dùng** —
+> hai job có embedding gần nhau = được cùng nhóm user tương tác (xem/lưu/ứng tuyển).
+
+**Path params:**
+- `job_id` — MongoDB ObjectId của job đang xem
+
+**Query params:**
+
+| Param    | Type   | Default | Mô tả                                                    |
+|----------|--------|---------|----------------------------------------------------------|
+| `limit`  | int    | `6`     | Số job gợi ý trả về                                     |
+| `userId` | string | —       | (Optional) User đang xem — exclude jobs đã SAVE/APPLY   |
+
+**Headers:** `X-Internal-Secret` (required)
+
+**Response:**
+```json
+{
+  "jobId": "67a1b2c3d4e5f6789abcdef0",
+  "data": [
+    { "jobId": "job-id-1", "score": 0.9123 },
+    { "jobId": "job-id-2", "score": 0.8754 }
+  ],
+  "source": "model_cf"
+}
+```
+
+| `source`     | Ý nghĩa                                                  |
+|--------------|----------------------------------------------------------|
+| `"model_cf"` | Item-Item CF từ LightFM item embeddings                  |
+| `"popular"`  | Fallback: job không có trong model → trả popular jobs    |
+
+**Scoring:**
+```
+final_score = 0.85 × cosine_similarity(item_embedding_A, item_embedding_B)
+            + 0.15 × normalized_item_bias
+```
+- `cosine_similarity`: collaborative signal — jobs cùng group users tương tác
+- `normalized_item_bias`: intrinsic popularity — ưu tiên jobs được nhiều người xem
+
+**Errors:**
+| Code | Khi nào                   |
+|------|---------------------------|
+| 403  | `X-Internal-Secret` sai   |
+
+---
+
 ### `POST /retrain`
 
 Trigger full retrain toàn bộ model LightFM.

@@ -50,6 +50,7 @@ class RecommendationEngine:
         self.user_features_matrix = None
         self.item_features_matrix = None
         self.applied_jobs: dict[str, set[str]] = {}
+        self.saved_jobs: dict[str, set[str]] = {}   # SAVE interactions
         self.active_job_ids: list[str] = []
         self.last_retrain_at: datetime | None = None
         self.last_partial_at: datetime | None = None
@@ -119,7 +120,7 @@ class RecommendationEngine:
         logger.info("═══ Starting FULL RETRAIN ═══")
 
         # 1. Load data
-        weighted, user_ids, job_ids, applied = load_interactions()
+        weighted, user_ids, job_ids, applied, saved = load_interactions()
         jobs = load_active_jobs()
         candidates = load_candidates(user_ids=user_ids, include_onboarded=True)
 
@@ -173,6 +174,7 @@ class RecommendationEngine:
         self.user_features_matrix = user_features_mat
         self.item_features_matrix = item_features_mat
         self.applied_jobs = applied
+        self.saved_jobs = saved
         self.active_job_ids = all_job_ids
         self.last_retrain_at = now
         self.last_partial_at = now
@@ -215,7 +217,8 @@ class RecommendationEngine:
         t0 = time.time()
         logger.info("─── Starting PARTIAL UPDATE (since %s) ───", since)
 
-        new_interactions, _, _, new_applied = load_interactions_since(since)
+        new_interactions, _, _, new_applied, new_saved = load_interactions_since(
+            since)
 
         if not new_interactions:
             logger.info("No new interactions — skipping.")
@@ -277,10 +280,13 @@ class RecommendationEngine:
         self.interactions_matrix = cumul_interactions
         self.weights_matrix = cumul_weights
 
-        # Cập nhật applied_jobs tăng dần
+        # Cập nhật applied_jobs và saved_jobs tăng dần
         for uid, jids in new_applied.items():
             if uid in user_map:
                 self.applied_jobs.setdefault(uid, set()).update(jids)
+        for uid, jids in new_saved.items():
+            if uid in user_map:
+                self.saved_jobs.setdefault(uid, set()).update(jids)
 
         self.last_partial_at = datetime.now(timezone.utc)
         self._save_to_disk()
@@ -401,9 +407,11 @@ class RecommendationEngine:
             return self._popular_fallback(n)
 
         # ⚠️  Chỉ đúng khi normalize=True (xem ghi chú trong docstring).
-        feat_embeddings = self.model.user_embeddings[feat_indices]  # internal API
+        # internal API
+        feat_embeddings = self.model.user_embeddings[feat_indices]
         user_embedding = feat_embeddings.mean(axis=0)
-        user_bias = self.model.user_biases[feat_indices].mean()     # internal API
+        # internal API
+        user_bias = self.model.user_biases[feat_indices].mean()
 
         _, _, item_map, _ = self.dataset.mapping()
 
@@ -426,6 +434,82 @@ class RecommendationEngine:
             logger.error("Failed to get popular jobs: %s", e)
             return [], "popular"
 
+    def get_similar_items(
+        self, job_id: str, n: int = 6, user_id: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str]:
+        """
+        Lấy các jobs tương tự dựa trên Item-Item CF.
+
+        Sử dụng cosine similarity trên item embeddings từ LightFM.
+        Vì model được train trên interaction data (VIEW/SAVE/APPLY) kết hợp
+        content features, item embeddings encode collaborative signal:
+        "người xem job A cũng thường xem job B".
+
+        Args:
+            job_id: Job đang xem (target)
+            n:      Số lượng kết quả trả về
+            user_id: (Optional) Nếu truyền vào, sẽ exclude jobs user đã interact
+        """
+        if not self.is_ready:
+            logger.warning("Model not loaded — returning popular jobs for CF.")
+            return self._popular_fallback(n)
+
+        _, _, item_map, _ = self.dataset.mapping()
+        if job_id not in item_map:
+            logger.info(
+                "Job %s not in model dataset — returning popular jobs for CF.", job_id)
+            return self._popular_fallback(n)
+
+        item_idx = item_map[job_id]
+
+        # get_item_representations trả về (biases, embeddings)
+        item_biases, item_embeddings = self.model.get_item_representations(
+            self.item_features_matrix
+        )
+
+        target_embedding = item_embeddings[item_idx]
+        target_norm = np.linalg.norm(target_embedding)
+
+        if target_norm == 0:
+            return self._popular_fallback(n)
+
+        all_norms = np.linalg.norm(item_embeddings, axis=1)
+        dot_products = item_embeddings.dot(target_embedding)
+
+        # Cosine similarity (collaborative signal)
+        cosine_similarities = np.zeros_like(dot_products)
+        valid_mask = all_norms > 0
+        cosine_similarities[valid_mask] = (
+            dot_products[valid_mask] / (all_norms[valid_mask] * target_norm)
+        )
+
+        # Kết hợp item bias để ưu tiên jobs phổ biến hơn trong ranking.
+        # bias phản ánh mức độ "intrinsic popularity" của item,
+        # giúp tránh recommend jobs ít ai quan tâm dù embedding gần.
+        # Normalize bias về [0, 1] rồi blend với cosine sim.
+        bias_min = item_biases.min()
+        bias_max = item_biases.max()
+        if bias_max > bias_min:
+            norm_biases = (item_biases - bias_min) / (bias_max - bias_min)
+        else:
+            norm_biases = np.zeros_like(item_biases)
+
+        # 85% cosine similarity + 15% popularity bias
+        combined_scores = 0.85 * cosine_similarities + 0.15 * norm_biases
+
+        # Remove target job
+        combined_scores[item_idx] = -2.0
+
+        # Exclude jobs user đã tương tác (nếu có user_id)
+        # Loại cả APPLY lẫn SAVE — user đã biết đến job này rồi.
+        exclude_ids = {job_id}
+        if user_id:
+            exclude_ids.update(self.applied_jobs.get(user_id, set()))
+            exclude_ids.update(self.saved_jobs.get(user_id, set()))
+
+        results = self._rank_results(combined_scores, item_map, n, exclude_ids)
+        return results, "model_cf"
+
     # ── Persistence ───────────────────────────────────────────────────────────
 
     def _save_to_disk(self) -> None:
@@ -438,6 +522,7 @@ class RecommendationEngine:
             meta = {
                 "active_job_ids": self.active_job_ids,
                 "applied_jobs": {k: list(v) for k, v in self.applied_jobs.items()},
+                "saved_jobs": {k: list(v) for k, v in self.saved_jobs.items()},
                 "last_retrain_at": self.last_retrain_at,
                 "last_partial_at": self.last_partial_at,
             }
@@ -480,7 +565,7 @@ class RecommendationEngine:
                 user_features_mat, item_features_mat = self._build_feature_matrices(
                     ds, jobs, candidates)
 
-            all_interactions, _, _, applied = load_interactions()
+            all_interactions, _, _, applied, saved = load_interactions()
             (interactions_mat, weights_mat), _ = self._build_interactions(
                 ds, all_interactions)
 
@@ -491,6 +576,7 @@ class RecommendationEngine:
             self.user_features_matrix = user_features_mat
             self.item_features_matrix = item_features_mat
             self.applied_jobs = applied
+            self.saved_jobs = saved
             self.active_job_ids = meta.get("active_job_ids", [])
             self.last_retrain_at = meta.get("last_retrain_at")
             self.last_partial_at = meta.get("last_partial_at")
