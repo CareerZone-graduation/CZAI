@@ -41,6 +41,7 @@ class CandidateScore(BaseModel):
     experienceYears: int = 0
     matchReasons: list[MatchReason] = []
 
+
 class PaginationInfo(BaseModel):
     currentPage: int
     totalPages: int
@@ -49,8 +50,16 @@ class PaginationInfo(BaseModel):
     hasNextPage: bool
     hasPrevPage: bool
 
+
 class CandidateRecommendationResponse(BaseModel):
     jobId: str
     recommendations: list[CandidateScore]
     pagination: PaginationInfo | None = None
     source: str
+
+
+class SimilarJobCFResponse(BaseModel):
+    """Response for Item-Item CF similar jobs endpoint."""
+    jobId: str
+    data: list[JobScore]
+    source: str  # "model_cf", "popular"

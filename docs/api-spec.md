@@ -322,6 +322,60 @@ Chi tiết về thuật toán và kiến trúc scoring, xem thêm tại: [candid
 
 ---
 
+### `GET /recommendation/similar-jobs-cf/{job_id}`
+
+Gợi ý việc làm tương tự bằng **Item-Item Collaborative Filtering (LightFM)**.
+
+> Câu trả lời cho: *"việc làm mà người có cùng sở thích với bạn cũng quan tâm"*
+>
+> Khác với `/embeddings/similar-jobs` (vector search trên nội dung mô tả JD),
+> endpoint này dùng item embeddings học từ **hành vi người dùng** —
+> hai job có embedding gần nhau = được cùng nhóm user tương tác (xem/lưu/ứng tuyển).
+
+**Path params:**
+- `job_id` — MongoDB ObjectId của job đang xem
+
+**Query params:**
+
+| Param    | Type   | Default | Mô tả                                                    |
+|----------|--------|---------|----------------------------------------------------------|
+| `limit`  | int    | `6`     | Số job gợi ý trả về                                     |
+| `userId` | string | —       | (Optional) User đang xem — exclude jobs đã SAVE/APPLY   |
+
+**Headers:** `X-Internal-Secret` (required)
+
+**Response:**
+```json
+{
+  "jobId": "67a1b2c3d4e5f6789abcdef0",
+  "data": [
+    { "jobId": "job-id-1", "score": 0.9123 },
+    { "jobId": "job-id-2", "score": 0.8754 }
+  ],
+  "source": "model_cf"
+}
+```
+
+| `source`     | Ý nghĩa                                                  |
+|--------------|----------------------------------------------------------|
+| `"model_cf"` | Item-Item CF từ LightFM item embeddings                  |
+| `"popular"`  | Fallback: job không có trong model → trả popular jobs    |
+
+**Scoring:**
+```
+final_score = 0.85 × cosine_similarity(item_embedding_A, item_embedding_B)
+            + 0.15 × normalized_item_bias
+```
+- `cosine_similarity`: collaborative signal — jobs cùng group users tương tác
+- `normalized_item_bias`: intrinsic popularity — ưu tiên jobs được nhiều người xem
+
+**Errors:**
+| Code | Khi nào                   |
+|------|---------------------------|
+| 403  | `X-Internal-Secret` sai   |
+
+---
+
 ### `POST /retrain`
 
 Trigger full retrain toàn bộ model LightFM.

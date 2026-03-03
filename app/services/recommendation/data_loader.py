@@ -35,7 +35,7 @@ WEIGHT_MAP: dict[str, float] = {
 def load_interactions(
     days: int | None = None,
     since: datetime | None = None,
-) -> tuple[list[tuple[str, str, float]], set[str], set[str], dict[str, set[str]]]:
+) -> tuple[list[tuple[str, str, float]], set[str], set[str], dict[str, set[str]], dict[str, set[str]]]:
     """
     Load interactions from MongoDB.
 
@@ -44,6 +44,7 @@ def load_interactions(
         - user_ids: set of all user ids that have interactions
         - job_ids:  set of all job ids that have been interacted with
         - applied_jobs: dict mapping user_id -> set of job_ids they APPLYed
+        - saved_jobs:   dict mapping user_id -> set of job_ids they SAVEd
     """
     db = get_sync_db()
     collection = db[settings.INTERACTIONS_COLLECTION]
@@ -60,6 +61,7 @@ def load_interactions(
     user_ids: set[str] = set()
     job_ids: set[str] = set()
     applied_jobs: dict[str, set[str]] = defaultdict(set)
+    saved_jobs: dict[str, set[str]] = defaultdict(set)
 
     count = 0
     for doc in cursor:
@@ -75,6 +77,8 @@ def load_interactions(
 
         if itype == "APPLY":
             applied_jobs[uid].add(jid)
+        elif itype == "SAVE":
+            saved_jobs[uid].add(jid)
 
     weighted = [(uid, jid, w) for (uid, jid), w in pair_weights.items()]
     logger.info(
@@ -82,7 +86,7 @@ def load_interactions(
         "%d users, %d jobs",
         count, len(weighted), len(user_ids), len(job_ids),
     )
-    return weighted, user_ids, job_ids, dict(applied_jobs)
+    return weighted, user_ids, job_ids, dict(applied_jobs), dict(saved_jobs)
 
 
 def load_interactions_since(since: datetime):
