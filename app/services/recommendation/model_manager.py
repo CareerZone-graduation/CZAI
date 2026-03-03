@@ -263,10 +263,10 @@ class RecommendationEngine:
         )
 
         self.model.fit_partial(
-            cumul_interactions,
+            cumul_interactions.tocoo(),
             user_features=self.user_features_matrix,
             item_features=self.item_features_matrix,
-            sample_weight=cumul_weights,
+            sample_weight=cumul_weights.tocoo(),
             epochs=settings.MODEL_PARTIAL_EPOCHS,
             num_threads=settings.MODEL_NUM_THREADS,
         )
@@ -303,8 +303,17 @@ class RecommendationEngine:
         user_id: str,
         n: int | None = None,
         exclude_applied: bool = True,
-    ) -> list[dict[str, Any]]:
-        """Top-N job recommendations cho 1 user."""
+    ) -> tuple[list[dict[str, Any]], str]:
+        """
+        Top-N job recommendations cho 1 user.
+
+        Returns:
+            (results, source) với source là một trong:
+              - "model"      : user có interaction, dùng collaborative filtering
+              - "cold_start" : user có profile nhưng chưa interact, hoặc không
+                               có trong dataset → dùng content-based / manual embedding
+              - "popular"    : không có đủ thông tin → trả popular jobs
+        """
         if n is None:
             n = settings.TOP_N
 
@@ -314,9 +323,25 @@ class RecommendationEngine:
 
         user_map, _, item_map, _ = self.dataset.mapping()
 
-        # User chưa có trong model → cold-start
+        # User chưa có trong model dataset → cold-start thủ công
         if user_id not in user_map:
             return self._cold_start_predict(user_id, n)
+
+        # User trong model — kiểm tra có interaction không
+        has_interaction = bool(self.applied_jobs.get(user_id))
+        # applied_jobs chỉ track APPLY; kiểm tra thêm interactions_matrix
+        if not has_interaction:
+            _, _, item_map_check, _ = self.dataset.mapping()
+            user_idx = user_map[user_id]
+            from scipy.sparse import issparse
+            mat = self.interactions_matrix
+            if issparse(mat):
+                row = mat.tocsr()[user_idx]
+                has_interaction = row.nnz > 0
+            else:
+                has_interaction = bool(mat[user_idx].any())
+
+        source = "model" if has_interaction else "cold_start"
 
         # Predict
         scores = self._predict_scores(user_map[user_id], item_map)
@@ -324,7 +349,7 @@ class RecommendationEngine:
         # Exclude applied jobs nếu cần
         exclude = self.applied_jobs.get(
             user_id, set()) if exclude_applied else set()
-        return self._rank_results(scores, item_map, n, exclude)
+        return self._rank_results(scores, item_map, n, exclude), source
 
     def _cold_start_predict(self, user_id: str, n: int) -> list[dict[str, Any]]:
         """
@@ -390,16 +415,16 @@ class RecommendationEngine:
 
         scores = item_vectors.dot(user_embedding) + user_bias + item_biases
 
-        return self._rank_results(scores, item_map, n)
+        return self._rank_results(scores, item_map, n), "cold_start"
 
-    def _popular_fallback(self, n: int) -> list[dict[str, Any]]:
+    def _popular_fallback(self, n: int) -> tuple[list[dict[str, Any]], str]:
         """Fallback: trả về popular jobs khi không predict được."""
         try:
             popular = get_popular_job_ids(limit=n)
-            return [{"jobId": jid, "score": 0.0} for jid in popular]
+            return [{"jobId": jid, "score": 0.0} for jid in popular], "popular"
         except Exception as e:
             logger.error("Failed to get popular jobs: %s", e)
-            return []
+            return [], "popular"
 
     # ── Persistence ───────────────────────────────────────────────────────────
 

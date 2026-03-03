@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     MODEL_DIR: str = "./models"
     RETRAIN_HOUR: int = 2
     RETRAIN_MINUTE: int = 0
-    PARTIAL_UPDATE_INTERVAL_MINUTES: int = 30
+    PARTIAL_UPDATE_INTERVAL_MINUTES: int = 1
     INTERACTION_DAYS: int = 50
 
     # LightFM hyper-parameters
