@@ -51,11 +51,13 @@ uvicorn app.main:app --reload
  │    ├── /query-embedding     POST  Gemini text embedding  🔒
  │    └── /similar-jobs        POST  MongoDB $vectorSearch  🔒
  │
- ├── /interactions             POST  Ghi tương tác user-job  🔒
- ├── /recommendations/{id}     GET   Gợi ý việc làm         🔒
- ├── /retrain                  POST  Trigger full retrain   🔒
- ├── /partial-update           POST  Incremental update     🔒
- └── /health                   GET   Model status           🔒
+ ├── /interactions                         POST  Ghi tương tác user-job              🔒
+ ├── /recommendations/{user_id}            GET   Gợi ý việc làm cá nhân hóa         🔒
+ ├── /recommendations/candidates/{job_id}  GET   Gợi ý ứng viên cho job             🔒
+ ├── /recommendation/similar-jobs-cf/{job_id}             GET   Job tương tự (Item-Item CF)         🔒
+ ├── /retrain                              POST  Trigger full retrain                🔒
+ ├── /partial-update                       POST  Incremental update                  🔒
+ └── /health                               GET   Model status                        🔒
 
 🔒 = Yêu cầu header X-Internal-Secret
 ```
