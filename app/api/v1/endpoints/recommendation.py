@@ -103,9 +103,49 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
         return 0.0
     return float(np.dot(a, b) / (norm_a * norm_b))
 
+def extract_matched_skills(job_skills: list[str], candidate_skills: list[dict]) -> list[str]:
+    if not job_skills or not candidate_skills: return []
+    job_skills_lower = [s.lower().strip() for s in job_skills]
+    matched = []
+    for cs in candidate_skills:
+        name = cs.get("name", "")
+        if name and name.lower().strip() in job_skills_lower:
+            matched.append(name)
+    return matched[:5]
+
+def calculate_experience_years(experiences: list[dict]) -> int:
+    if not experiences: return 0
+    total_months = 0
+    for exp in experiences:
+        start_str = exp.get("startDate")
+        end_str = exp.get("endDate")
+        if not start_str: continue
+        
+        # Format can be '2020-01-01T00:00:00.000Z'
+        if isinstance(start_str, str) and start_str.endswith("Z"):
+            start_str = start_str[:-1] + "+00:00"
+        if isinstance(end_str, str) and end_str.endswith("Z"):
+            end_str = end_str[:-1] + "+00:00"
+            
+        try:
+            start_date = datetime.fromisoformat(start_str) if isinstance(start_str, str) else start_str
+            if end_str:
+                end_date = datetime.fromisoformat(end_str) if isinstance(end_str, str) else end_str
+            else:
+                end_date = datetime.now(timezone.utc)
+            
+            months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+            total_months += max(0, months)
+        except Exception:
+            pass
+    return round(total_months / 12)
+
 @router.get("/recommendations/candidates/{job_id}", response_model=CandidateRecommendationResponse)
 async def get_candidate_recommendations(
     job_id: str,
+    page: int = 1,
+    limit: int = 10,
+    minScore: float = 0.5,
     x_internal_secret: Optional[str] = Header(None),
 ):
     # _verify_internal(x_internal_secret)
@@ -129,7 +169,6 @@ async def get_candidate_recommendations(
     if not valid_embeddings:
         raise HTTPException(status_code=400, detail="Job has no valid embeddings")
 
-    # Average embedding
     dim = len(valid_embeddings[0])
     avg_embedding = [0.0] * dim
     for emb in valid_embeddings:
@@ -173,11 +212,31 @@ async def get_candidate_recommendations(
         return CandidateRecommendationResponse(
             jobId=job_id,
             recommendations=[],
+            pagination={"currentPage": page, "totalPages": 0, "totalItems": 0, "limit": limit, "hasNextPage": False, "hasPrevPage": False},
             source="vector_search"
         )
         
-    # 3. MaxSim Re-ranking
+    # 3. Fetch CandidateProfiles
+    user_ids = [u["_id"] for u in matched_users]
+    profiles = await db["candidateprofiles"].find({"userId": {"$in": user_ids}}).to_list(length=100)
+    profile_map = {str(p["userId"]): p for p in profiles}
+        
+    # 4. MaxSim Re-ranking & Rule-based Scoring
+    scored_candidates = []
+    
+    job_skills_list = job.get("skills", [])
+    job_skills_lower = [s.lower().strip() for s in job_skills_list if isinstance(s, str)]
+    job_category = str(job.get("category", ""))
+    job_location = job.get("location", {})
+    job_experience = str(job.get("experience", ""))
+    job_work_type = str(job.get("workType", ""))
+    
     for user in matched_users:
+        user_id_str = str(user["_id"])
+        profile = profile_map.get(user_id_str)
+        if not profile:
+            continue
+            
         best_score = user.get("similarityScore", 0)
         user_chunks = user.get("chunks", [])
         
@@ -186,28 +245,130 @@ async def get_candidate_recommendations(
             for chunk in user_chunks:
                 emb = chunk.get("embedding")
                 if emb and len(emb) == dim:
-                    score = cosine_similarity(avg_embedding, emb)
-                    if score > max_chunk_score:
-                        max_chunk_score = score
-            
+                    s = cosine_similarity(avg_embedding, emb)
+                    if s > max_chunk_score:
+                        max_chunk_score = s
             if max_chunk_score > best_score:
                 best_score = max_chunk_score
                 
-        user["finalScore"] = best_score
+        # Base AI score (normalized up to 40 points)
+        ai_score_val = min(float(best_score), 1.0)
+        score = ai_score_val * 40
+        match_reasons = [{
+            "type": "ai_match",
+            "value": "Phù hợp với mô tả công việc (AI đánh giá)",
+            "weight": round(score)
+        }]
         
+        # Rule 1: Skills matching (max 30 points)
+        prof_skills = profile.get("skills", [])
+        if job_skills_list and prof_skills:
+            candidate_skills_lower = [s.get("name", "").lower().strip() for s in prof_skills if isinstance(s, dict) and s.get("name")]
+            exact_matches = 0
+            partial_matches = 0
+            matched_skill_names = []
+            
+            for c_skill in candidate_skills_lower:
+                if c_skill in job_skills_lower:
+                    exact_matches += 1
+                    matched_skill_names.append(c_skill)
+                else:
+                    has_partial = any(js in c_skill or c_skill in js for js in job_skills_lower)
+                    if has_partial:
+                        partial_matches += 1
+                        
+            skill_score = min(30, (exact_matches * 8) + (partial_matches * 3))
+            score += skill_score
+            
+            if exact_matches > 0:
+                short_matched = ", ".join(matched_skill_names[:3])
+                suffix = "..." if len(matched_skill_names) > 3 else ""
+                match_reasons.append({
+                    "type": "skill_match",
+                    "value": f"Khớp {exact_matches} kỹ năng: {short_matched}{suffix}",
+                    "weight": skill_score
+                })
+                
+        # Rule 2: Category matching (max 10 points)
+        if job_category and job_category in profile.get("preferredCategories", []):
+            score += 10
+            match_reasons.append({
+                "type": "category_match",
+                "value": "Đúng ngành nghề mong muốn",
+                "weight": 10
+            })
+            
+        # Rule 3: Location matching (max 10 points)
+        job_province = job_location.get("province")
+        if job_province and profile.get("preferredLocations"):
+            loc_match = next((loc for loc in profile.get("preferredLocations", []) if loc.get("province") == job_province), None)
+            if loc_match:
+                loc_score = 7
+                job_district = job_location.get("district")
+                if loc_match.get("district") and job_district and loc_match.get("district") == job_district:
+                    loc_score = 10
+                score += loc_score
+                
+                dist_str = f", {loc_match.get('district')}" if loc_match.get("district") else ""
+                match_reasons.append({
+                    "type": "location_match",
+                    "value": f"Vị trí phù hợp: {job_province}{dist_str}",
+                    "weight": loc_score
+                })
+                
+        # Rule 4: Experience Level matching (max 5 points)
+        if job_experience and job_experience in profile.get("workPreferences", {}).get("experienceLevel", []):
+            score += 5
+            match_reasons.append({
+                "type": "experience_match",
+                "value": "Cấp độ kinh nghiệm phù hợp",
+                "weight": 5
+            })
+            
+        # Rule 5: Work type matching (max 5 points)
+        if job_work_type and job_work_type in profile.get("workPreferences", {}).get("workTypes", []):
+            score += 5
+            match_reasons.append({
+                "type": "worktype_match",
+                "value": "Hình thức làm việc phù hợp",
+                "weight": 5
+            })
+            
+        normalized_score = score / 100.0
+        
+        if normalized_score >= minScore:
+            scored_candidates.append(CandidateScore(
+                userId=user_id_str,
+                candidateProfileId=str(profile.get("_id", "")),
+                score=normalized_score,
+                similarityPercentage=round(normalized_score * 100),
+                matchedSkills=extract_matched_skills(job_skills_list, prof_skills),
+                experienceYears=calculate_experience_years(profile.get("experiences", [])),
+                matchReasons=match_reasons
+            ))
+            
     # Sort descending
-    matched_users.sort(key=lambda x: x["finalScore"], reverse=True)
+    scored_candidates.sort(key=lambda x: x.score, reverse=True)
     
-    # Format response
-    recommendations = [
-        CandidateScore(userId=str(u["_id"]), score=u["finalScore"])
-        for u in matched_users
-    ]
-
+    total_items = len(scored_candidates)
+    skip = (page - 1) * limit
+    paginated = scored_candidates[skip:skip + limit]
+    
+    import math
+    total_pages = math.ceil(total_items / limit) if limit > 0 else 0
+    
     return CandidateRecommendationResponse(
         jobId=job_id,
-        recommendations=recommendations,
-        source="vector_search_maxsim"
+        recommendations=paginated,
+        pagination={
+            "currentPage": page,
+            "totalPages": total_pages,
+            "totalItems": total_items,
+            "limit": limit,
+            "hasNextPage": (page * limit) < total_items,
+            "hasPrevPage": page > 1
+        },
+        source="vector_search_maxsim_rulebased"
     )
 
 

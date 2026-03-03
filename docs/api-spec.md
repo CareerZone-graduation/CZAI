@@ -268,6 +268,60 @@ Lấy danh sách gợi ý việc làm cá nhân hóa cho user.
 
 ---
 
+### `GET /recommendations/candidates/{job_id}`
+
+Lấy danh sách gợi ý ứng viên phù hợp cho một công việc cụ thể. Kết hợp Vector Search (Retrieval), MaxSim Re-ranking và Rule-based Scoring.
+
+Chi tiết về thuật toán và kiến trúc scoring, xem thêm tại: [candidate-recommendation-spec.md](./candidate-recommendation-spec.md)
+
+**Path params:**
+- `job_id` — MongoDB ObjectId của job cần tìm ứng viên
+
+**Query params:**
+- `page` (int, default: `1`) — Số trang
+- `limit` (int, default: `10`) — Số lượng ứng viên trả về mỗi trang
+- `minScore` (float, default: `0.5`) — Điểm chẩn chỉnh tối thiểu (0.0 - 1.0) để lọc ứng viên
+
+**Response:**
+```json
+{
+  "jobId": "67b9c1d...",
+  "recommendations": [
+    {
+      "userId": "user-id-1",
+      "candidateProfileId": "profile-id-1",
+      "score": 0.85,
+      "similarityPercentage": 85,
+      "matchedSkills": ["React", "Node.js"],
+      "experienceYears": 3,
+      "matchReasons": [
+        {
+          "type": "ai_match",
+          "value": "Phù hợp với mô tả công việc (AI đánh giá)",
+          "weight": 35
+        },
+        {
+          "type": "skill_match",
+          "value": "Khớp 2 kỹ năng: React, Node.js",
+          "weight": 16
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 45,
+    "limit": 10,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  },
+  "source": "vector_search_maxsim_rulebased"
+}
+```
+
+---
+
 ### `POST /retrain`
 
 Trigger full retrain toàn bộ model LightFM.

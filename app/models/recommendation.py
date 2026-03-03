@@ -26,12 +26,31 @@ class RecommendationResponse(BaseModel):
     source: str  # "model", "cold_start", "popular"
 
 
+class MatchReason(BaseModel):
+    type: str
+    value: str
+    weight: int
+
+
 class CandidateScore(BaseModel):
     userId: str
+    candidateProfileId: str | None = None
     score: float
+    similarityPercentage: int = 0
+    matchedSkills: list[str] = []
+    experienceYears: int = 0
+    matchReasons: list[MatchReason] = []
 
+class PaginationInfo(BaseModel):
+    currentPage: int
+    totalPages: int
+    totalItems: int
+    limit: int
+    hasNextPage: bool
+    hasPrevPage: bool
 
 class CandidateRecommendationResponse(BaseModel):
     jobId: str
     recommendations: list[CandidateScore]
+    pagination: PaginationInfo | None = None
     source: str
