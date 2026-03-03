@@ -24,3 +24,14 @@ class RecommendationResponse(BaseModel):
     userId: str
     recommendations: list[JobScore]
     source: str  # "model", "cold_start", "popular"
+
+
+class CandidateScore(BaseModel):
+    userId: str
+    score: float
+
+
+class CandidateRecommendationResponse(BaseModel):
+    jobId: str
+    recommendations: list[CandidateScore]
+    source: str

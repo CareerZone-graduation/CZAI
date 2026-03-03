@@ -23,6 +23,8 @@ from app.models.recommendation import (
     InteractionRequest,
     JobScore,
     RecommendationResponse,
+    CandidateScore,
+    CandidateRecommendationResponse,
 )
 from app.services.recommendation.model_manager import engine
 
@@ -82,6 +84,130 @@ async def get_recommendations(
         userId=user_id,
         recommendations=[JobScore(**r) for r in results],
         source=source,
+    )
+
+
+# ── Get candidates for a job (Vector Search + MaxSim) ────────────────────────
+
+import numpy as np
+from bson import ObjectId
+
+def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
+    if not vec_a or not vec_b or len(vec_a) != len(vec_b):
+        return 0.0
+    a = np.array(vec_a)
+    b = np.array(vec_b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+@router.get("/candidates/{job_id}", response_model=CandidateRecommendationResponse)
+async def get_candidate_recommendations(
+    job_id: str,
+    x_internal_secret: Optional[str] = Header(None),
+):
+    # _verify_internal(x_internal_secret)
+    db = get_db()
+    
+    # 1. Fetch Job and Average Embedding
+    try:
+        job_obj_id = ObjectId(job_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job ID format")
+
+    job = await db["jobs"].find_one({"_id": job_obj_id})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    chunks = job.get("chunks", [])
+    if not chunks:
+        raise HTTPException(status_code=400, detail="Job has no embeddings yet (chunks missing)")
+
+    valid_embeddings = [c.get("embedding") for c in chunks if c.get("embedding")]
+    if not valid_embeddings:
+        raise HTTPException(status_code=400, detail="Job has no valid embeddings")
+
+    # Average embedding
+    dim = len(valid_embeddings[0])
+    avg_embedding = [0.0] * dim
+    for emb in valid_embeddings:
+        for i in range(dim):
+            avg_embedding[i] += emb[i]
+    for i in range(dim):
+        avg_embedding[i] /= len(valid_embeddings)
+
+    # 2. Vector Search Pipeline on Users collection
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": "default",
+                "path": "embedding",
+                "queryVector": avg_embedding,
+                "numCandidates": 200,
+                "limit": 100,
+                "filter": {
+                    "role": {"$eq": "candidate"},
+                    "allowSearch": {"$eq": True}
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "similarityScore": {"$meta": "vectorSearchScore"}
+            }
+        },
+        {
+            "$project": {
+                "_id": 1,
+                "similarityScore": 1,
+                "chunks": 1
+            }
+        }
+    ]
+
+    matched_users = await db["users"].aggregate(pipeline).to_list(length=100)
+    
+    if not matched_users:
+        return CandidateRecommendationResponse(
+            jobId=job_id,
+            recommendations=[],
+            source="vector_search"
+        )
+        
+    # 3. MaxSim Re-ranking
+    for user in matched_users:
+        best_score = user.get("similarityScore", 0)
+        user_chunks = user.get("chunks", [])
+        
+        if user_chunks:
+            max_chunk_score = -1.0
+            for chunk in user_chunks:
+                emb = chunk.get("embedding")
+                if emb and len(emb) == dim:
+                    score = cosine_similarity(avg_embedding, emb)
+                    if score > max_chunk_score:
+                        max_chunk_score = score
+            
+            if max_chunk_score > best_score:
+                best_score = max_chunk_score
+                
+        user["finalScore"] = best_score
+        
+    # Sort descending
+    matched_users.sort(key=lambda x: x["finalScore"], reverse=True)
+    
+    # Format response
+    recommendations = [
+        CandidateScore(userId=str(u["_id"]), score=u["finalScore"])
+        for u in matched_users
+    ]
+
+    return CandidateRecommendationResponse(
+        jobId=job_id,
+        recommendations=recommendations,
+        source="vector_search_maxsim"
     )
 
 
