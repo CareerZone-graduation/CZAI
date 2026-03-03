@@ -103,7 +103,7 @@ def cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
         return 0.0
     return float(np.dot(a, b) / (norm_a * norm_b))
 
-@router.get("/candidates/{job_id}", response_model=CandidateRecommendationResponse)
+@router.get("/recommendations/candidates/{job_id}", response_model=CandidateRecommendationResponse)
 async def get_candidate_recommendations(
     job_id: str,
     x_internal_secret: Optional[str] = Header(None),
