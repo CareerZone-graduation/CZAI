@@ -95,7 +95,7 @@ async def generate_response(session_id: str, message: str, is_start: bool = Fals
         messages=history,
         temperature=1,
         top_p=1,
-        model="gpt-4o"
+        model="openai/gpt-4.1-mini"
     )
     
     ai_text = response.choices[0].message.content.strip()
