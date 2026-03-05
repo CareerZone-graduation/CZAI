@@ -3,7 +3,7 @@ copilot_tools = [
         "type": "function",
         "function": {
             "name": "search_jobs",
-            "description": "Tìm kiếm việc làm theo nhiều tiêu chí. Dùng khi user muốn tìm job theo từ khóa, kỹ năng, địa điểm, mức lương, loại hình công việc, v.v. Hỗ trợ cả tìm kiếm ngữ nghĩa (semantic) và lọc chính xác (exact filter).",
+            "description": "Tìm kiếm việc làm theo nhiều tiêu chí hoặc tìm kiếm theo ngữ nghĩa. Dùng khi user muốn tìm job theo từ khóa, kỹ năng, địa điểm, mức lương, loại hình công việc, v.v. Hỗ trợ cả tìm kiếm ngữ nghĩa (semantic) và lọc chính xác (exact filter).",
             "parameters": {
                 "type": "object",
                 "properties": {
