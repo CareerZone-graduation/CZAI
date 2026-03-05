@@ -186,5 +186,26 @@ copilot_tools = [
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_knowledge_base",
+            "description": "Tìm kiếm thông tin trong cơ sở dữ liệu tri thức của CareerZone. Sử dụng công cụ này ĐỂ TRẢ LỜI MỌI CÂU HỎI liên quan đến chính sách, hướng dẫn sử dụng, thao tác trên phần mềm, thanh toán, quy định đăng tin, hoặc thông tin hỗ trợ khác.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Câu hỏi chi tiết hoặc từ khóa để tìm kiếm trong cơ sở kiến thức. Ví dụ: 'Cách nạp tiền vào tài khoản' hoặc 'Chính sách bảo mật thông tin'"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Số lượng kết quả trả về, mặc định là 5."
+                    }
+                },
+                "required": ["query"]
+            }
+        }
     }
 ]

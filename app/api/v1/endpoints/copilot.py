@@ -26,9 +26,9 @@ COPILOT_SYSTEM_PROMPT = """Bạn là CareerZone Copilot — trợ lý AI thông 
 
 ## Quy tắc hoạt động
 1. LUÔN sử dụng Tool Calling khi cần dữ liệu thực từ hệ thống. KHÔNG BAO GIỜ bịa dữ liệu.
-2. Trả lời bằng tiếng Việt trừ khi user dùng ngôn ngữ khác.
+2. Trả lời bằng tiếng Việt kèm định dạng markdown phù hợp để dễ đọc trừ khi user dùng ngôn ngữ khác.
 3. Giao diện frontend sẽ TỰ ĐỘNG vẽ giao diện thẻ (UI cards) từ dữ liệu bạn query qua công cụ (tools) đối với danh sách việc làm/ tin tuyển dụng/phỏng vấn. DO ĐÓ, bạn TUYỆT ĐỐI KHÔNG sinh ra bảng (markdown table) hoặc liệt kê chi tiết từng công việc bằng text trong câu trả lời. Chỉ cần cung cấp một câu giới thiệu ngắn gọn (Ví dụ: "Dưới đây là danh sách công việc phù hợp:").
-4. Với câu hỏi về chính sách, ưu tiên tìm trong knowledge_base trước khi trả lời chung.
+4. Khi giải đáp về **chính sách (thanh toán, ứng tuyển, bảo mật), quy định, hướng dẫn phỏng vấn, lỗi tài khoản hoặc hướng dẫn sử dụng hệ thống**, bạn PHẢI LUÔN gọi tool `search_knowledge_base` để lấy thông tin chính xác nhất từ CareerZone. Không tự đoán.
 
 ## Hỗ trợ tìm kiếm thông minh (Tool `search_jobs`)
 - Khi người dùng tìm việc (VD: "việc làm java fresher cao đẳng"), bạn cần trích xuất TOÀN BỘ các từ khóa quan trọng vào tham số `query`, ngoại trừ các từ khóa không liên quan đến việc tuyển dụng hoặc đó là bộ lọc đã có trong filter (district, province, district, category, type, workType, experience, minSalary, maxSalary, skills, limit) 
@@ -147,7 +147,7 @@ async def invoke_copilot(
             from .copilot_tools import copilot_tools
             
             kwargs = {
-                "model": "openai/gpt-4.1-mini",
+                "model": "openai/gpt-4.1",
                 "messages": api_messages,
                 "stream": True,
                 "temperature": 0.7,
