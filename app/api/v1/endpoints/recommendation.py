@@ -67,6 +67,7 @@ async def record_interaction(
 @router.get("/recommendations/{user_id}", response_model=RecommendationResponse)
 async def get_recommendations(
     user_id: str,
+    top_n: int = None,
     x_internal_secret: Optional[str] = Header(None),
 ):
     # _verify_internal(x_internal_secret)
@@ -77,10 +78,13 @@ async def get_recommendations(
             detail="Model is not ready yet. Please try again later.",
         )
 
+    # Use provided top_n or fallback to settings.TOP_N
+    n = top_n if top_n is not None else settings.TOP_N
+
     loop = asyncio.get_running_loop()
     results, source = await loop.run_in_executor(
         _executor,
-        lambda: engine.predict(user_id, n=settings.TOP_N, exclude_applied=False),
+        lambda: engine.predict(user_id, n=n, exclude_applied=False),
     )
 
     return RecommendationResponse(

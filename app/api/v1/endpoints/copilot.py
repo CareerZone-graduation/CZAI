@@ -11,10 +11,10 @@ router = APIRouter()
 
 # Initialize OpenAI Client pointing to GitHub Models
 client = None
-if settings.GITHUB_TOKEN:
+if settings.LLM_API_KEY:
     client = AsyncOpenAI(
-        base_url="https://models.github.ai/inference",
-        api_key=settings.GITHUB_TOKEN
+        base_url=settings.LLM_BASE_URL,
+        api_key=settings.LLM_API_KEY
     )
 
 COPILOT_SYSTEM_PROMPT = """Bạn là CareerZone Copilot — trợ lý AI thông minh của nền tảng tuyển dụng CareerZone.
@@ -147,7 +147,7 @@ async def invoke_copilot(
             from .copilot_tools import copilot_tools
             
             kwargs = {
-                "model": "openai/gpt-4.1",
+                "model": settings.LLM_MODEL,
                 "messages": api_messages,
                 "stream": True,
                 "temperature": 0.7,
