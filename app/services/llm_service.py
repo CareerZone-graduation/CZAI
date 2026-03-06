@@ -5,10 +5,10 @@ from app.core.config import settings
 
 # Initialize OpenAI Client pointing to GitHub Models
 client = None
-if settings.GITHUB_TOKEN:
+if settings.LLM_API_KEY:
     client = OpenAI(
-        base_url="https://models.github.ai/inference",
-        api_key=settings.GITHUB_TOKEN
+        base_url=settings.LLM_BASE_URL,
+        api_key=settings.LLM_API_KEY
     )
 
 def get_interviewer_prompt(topic: str = None) -> str:
@@ -95,7 +95,7 @@ async def generate_response(session_id: str, message: str, is_start: bool = Fals
         messages=history,
         temperature=1,
         top_p=1,
-        model="gpt-4o"
+        model=settings.LLM_MODEL
     )
     
     ai_text = response.choices[0].message.content.strip()

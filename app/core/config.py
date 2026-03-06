@@ -9,10 +9,13 @@ class Settings(BaseSettings):
     # API KEYS
     ELEVENLABS_API_KEY: str
     ASSEMBLYAI_API_KEY: str
-    GITHUB_TOKEN: str
     SIMLI_API_KEY: str
     GEMINI_API_KEY: str
     INTERNAL_API_KEY: str = "careerzone_internal_secret_key"
+    # LLM Configuration
+    LLM_API_KEY: str
+    LLM_BASE_URL: str
+    LLM_MODEL: str
     # MongoDB
     MONGO_URI: str = ""
     MONGO_DB_NAME: str = "careerzone"
