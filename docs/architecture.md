@@ -15,6 +15,7 @@ CareerZoneAI là một **AI microservice** viết bằng Python/FastAPI, đóng 
 | Vector embedding              | `endpoints/embedding.py`        | Gemini Embedding API          |
 | Similar Jobs (vector search)  | `endpoints/similar_jobs.py`     | MongoDB Atlas $vectorSearch   |
 | Personalized Recommendations  | `services/recommendation/`      | LightFM (Hybrid CF + CB)      |
+| AI Candidate Comparison       | `endpoints/compare_candidates.py`| Gemini 2.5 Flash Lite         |
 
 ---
 
@@ -37,6 +38,7 @@ CareerZoneAI FastAPI (:8000)
     ├── /embeddings/
     │   ├── /query-embedding → Gemini Embedding API
     │   └── /similar-jobs    → MongoDB Atlas $vectorSearch
+    ├── /compare-candidates  → Gemini 2.5 Flash Lite (Streaming SSE)
     ├── /recommendations/{id}→ LightFM Engine (in-process)
     ├── /interactions        → MongoDB write
     ├── /retrain             → LightFM full retrain (background thread)
@@ -147,3 +149,20 @@ Xem chi tiết trong [data-models.md](./data-models.md#environment-variables).
 | MongoDB Atlas    | `motor` (async Motor)         | Database + $vectorSearch         |
 | Cloudinary       | `cloudinary` SDK             | Audio storage                    |
 | LightFM          | In-process Python lib        | Recommendation model             |
+
+---
+
+## 9. Cấu trúc Prompt LLM (Candidate Comparison)
+
+Endpoint `/compare-candidates` sử dụng Prompt Engineering phức tạp qua model Gemini 2.5 Flash Lite để chấm điểm và so sánh đa chiều:
+
+1. **System Prompt Constraint**: Ép LLM luôn trả ra response gồm 2 phần định dạng nghiêm ngặt:
+    - `Phần 1`: JSON dictionary chứa `scores` (từ 0-100) cho 5 tiêu chí: *kỹ năng, kinh nghiệm, học vấn, độ phù hợp, mức lương* cùng hệ thống `reasoning` (lý do) tương ứng.
+    - `Phần 2`: Markdown text phân tích chi tiết tổng quan điểm mạnh, yếu, xếp hạng và kết luận.
+    
+2. **Dữ liệu đầu vào (Context Formulation)**: 
+    - Lắp ráp tự động các thông tin ứng viên (từ collection applications và user profiles: Bio, Skills, Experiences, Projects, Expected Salary) cùng Cover Letter và CV text đã parse thành một khối văn bản markdown mạch lạc.
+    - So chiếu nội dung trên với Job Description (JD), Requirements, Skills từ collection Jobs.
+
+3. **Stream Parsing**:
+    - Backend stream response thô qua cho Frontend. FE duyệt qua từng chunk SSE để tự động tách xuất khối JSON (` ```json ... ``` `) để render thành bảng điểm Radar và cập nhật chữ Markdown phân tích theo thời gian thực (real-time typing effect).

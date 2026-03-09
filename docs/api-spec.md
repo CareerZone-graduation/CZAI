@@ -416,3 +416,66 @@ Kiểm tra trạng thái model.
   "model_components": 64
 }
 ```
+
+---
+
+## 5. Candidate Comparison
+
+> ⚠️ Yêu cầu header: `X-Internal-Secret`
+
+### `POST /compare-candidates`
+
+So sánh các ứng viên cho một vị trí công việc qua AI, trả về nhận xét và điểm số dưới dạng Server-Sent Events (SSE).
+
+**Request body:**
+```json
+{
+  "candidates": [
+    {
+      "applicationId": "app-id-1",
+      "name": "Nguyen Van A",
+      "status": "PENDING",
+      "coverLetter": "...",
+      "appliedAt": "2026-03-01T10:00:00Z",
+      "notes": "...",
+      "cvText": "...",
+      "profile": {
+        "bio": "...",
+        "skills": [...],
+        "experiences": [...],
+        "educations": [...],
+        "certificates": [...],
+        "projects": [...],
+        "expectedSalary": {...},
+        "workPreferences": {...}
+      }
+    },
+    ...
+  ],
+  "job": {
+    "title": "Backend Developer",
+    "description": "...",
+    "requirements": "...",
+    "skills": ["Node.js", "Python"],
+    "experience": "2 years",
+    "type": "FULL_TIME",
+    "workType": "HYBRID",
+    "minSalary": 10000000,
+    "maxSalary": 30000000,
+    "category": "IT",
+    "location": {...}
+  },
+  "stream": true
+}
+```
+
+**Response:**
+- `Content-Type: text/event-stream`
+- Trả về luồng dữ liệu SSE (`data: {"delta": "..."}` và chấm dứt bởi `data: {}`). AI response sẽ chứa JSON theo cú pháp nhất định cho HTML parser, sau đó là markdown text.
+
+**Errors:**
+| Code | Khi nào                          |
+|------|----------------------------------|
+| 400  | Không đủ ứng viên (cần ít nhất 2)|
+| 500  | LLM client lỗi                   |
+
