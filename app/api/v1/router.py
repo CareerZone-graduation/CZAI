@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     similar_jobs,
     simli,
     copilot,
+    compare_candidates,
 )
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(
     similar_jobs.router, prefix="/embeddings", tags=["Similar Jobs"])
 api_router.include_router(recommendation.router, tags=["Recommendations"])
 api_router.include_router(copilot.router, prefix="/copilot", tags=["Copilot"])
+api_router.include_router(compare_candidates.router, prefix="/copilot", tags=["Copilot"])
