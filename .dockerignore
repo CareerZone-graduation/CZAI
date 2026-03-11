@@ -1,0 +1,43 @@
+# Git logs and directories
+.git
+.github
+.gitignore
+
+# Virtual environment
+.venv
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AI Chatbots and internal tools
+.claude
+.serena
+
+# Logs
+*.log
+
+# Documentation and temporary files
+docs/
+digest.txt
+README.md
+scripts/
+.claude/
+.github/
+.serena/
+
+# Models (avoid copying models locally if they are heavy, though this depends on your use case)
+models/

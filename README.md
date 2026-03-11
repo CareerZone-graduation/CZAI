@@ -10,7 +10,6 @@ Backend AI cho nền tảng CareerZone, được xây dựng bằng **FastAPI (P
 - **Avatar AI**: Simli AI (WebRTC session tokens & ICE servers)
 - **Embeddings & Tìm việc tương tự**: Google Gemini Embedding + MongoDB Atlas `$vectorSearch`
 - **Hệ thống gợi ý việc làm**: LightFM hybrid collaborative filtering + content-based
-- **Lưu trữ media**: Cloudinary
 
 ## Yêu cầu
 
@@ -28,16 +27,10 @@ cd CZAI
 
 ### 2. Tạo Virtual Environment
 
-**Windows (PowerShell):**
-```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
 **Windows (Command Prompt):**
 ```cmd
-python -m venv venv
-venv\Scripts\activate.bat
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
 **Linux/macOS:**
@@ -57,43 +50,21 @@ pip install -r requirements.txt
 Tạo file `.env` trong thư mục gốc:
 
 ```env
-# GitHub Models – LLM (gpt-4o qua OpenAI SDK)
-GITHUB_TOKEN=your_github_token
+# API Keys
+ASSEMBLYAI_API_KEY=
+ELEVENLABS_API_KEY=
+SIMLI_API_KEY=
+GEMINI_API_KEY=
+INTERNAL_API_KEY=
 
-# ElevenLabs – Text to Speech
-ELEVENLABS_API_KEY=your_elevenlabs_api_key
-ELEVENLABS_VOICE_ID=TX3LPaxmHKxFdv7VOQHJ
-ELEVENLABS_VOICE_ID_SIMLI=your_simli_voice_id
-
-# AssemblyAI – Speech to Text
-ASSEMBLYAI_API_KEY=your_assemblyai_api_key
-
-# Google Gemini – Embeddings
-GEMINI_API_KEY=your_gemini_api_key
-
-# Simli AI – Avatar
-SIMLI_API_KEY=your_simli_api_key
-
-# Cloudinary – Media Storage
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+# LLM Configuration
+LLM_API_KEY=
+LLM_BASE_URL=
+LLM_MODEL=
 
 # MongoDB
-MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net
-MONGO_DB_NAME=careerzone
-
-# Internal API Security
-INTERNAL_API_KEY=your_internal_secret_key
-
-# Recommendation model (tùy chọn – có giá trị mặc định)
-MODEL_DIR=./models
-MODEL_NO_COMPONENTS=64
-MODEL_EPOCHS=30
-MODEL_LEARNING_RATE=0.05
-RETRAIN_HOUR=2
-PARTIAL_UPDATE_INTERVAL_MINUTES=30
-TOP_N=20
+MONGO_URI=
+MONGO_DB_NAME=
 ```
 
 ## Chạy ứng dụng
@@ -214,7 +185,6 @@ CZAI/
 │   │   ├── llm_service.py               # GitHub Models (gpt-4o)
 │   │   ├── tts_service.py               # ElevenLabs TTS
 │   │   ├── stt_service.py               # AssemblyAI STT
-│   │   ├── cloudinary_service.py        # Cloudinary upload
 │   │   └── recommendation/
 │   │       ├── model_manager.py         # RecommendationEngine singleton
 │   │       ├── feature_engineering.py   # Shared feature namespace
@@ -243,20 +213,6 @@ pip install --upgrade -r requirements.txt
 # Freeze dependencies hiện tại
 pip freeze > requirements.txt
 ```
-
-## Xử lý lỗi thường gặp
-
-**Lỗi kích hoạt venv trên Windows PowerShell:**
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-**Lỗi port đã được sử dụng:**
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-```
-
-**Model chưa được train:** Model sẽ tự động train khi khởi động lần đầu nếu không tìm thấy file trong `./models/`.
 
 ## License
 
