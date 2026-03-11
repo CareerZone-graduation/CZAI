@@ -19,10 +19,6 @@ class Settings(BaseSettings):
     # MongoDB
     MONGO_URI: str = ""
     MONGO_DB_NAME: str = "careerzone"
-    # CLOUDINARY
-    CLOUDINARY_CLOUD_NAME: str
-    CLOUDINARY_API_KEY: str
-    CLOUDINARY_API_SECRET: str
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
