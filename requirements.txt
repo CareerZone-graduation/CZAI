@@ -6,7 +6,6 @@ google-genai
 pydantic-settings
 python-multipart
 elevenlabs
-cloudinary
 motor
 lightfm-next
 numpy
