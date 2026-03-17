@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     simli,
     copilot,
     compare_candidates,
+    enhance_job,
 )
 
 api_router = APIRouter()
@@ -22,3 +23,4 @@ api_router.include_router(
 api_router.include_router(recommendation.router, tags=["Recommendations"])
 api_router.include_router(copilot.router, prefix="/copilot", tags=["Copilot"])
 api_router.include_router(compare_candidates.router, prefix="/copilot", tags=["Copilot"])
+api_router.include_router(enhance_job.router, prefix="/enhance-job", tags=["Enhance Job"])
