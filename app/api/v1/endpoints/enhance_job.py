@@ -119,7 +119,8 @@ Hãy viết lại theo định dạng XML đã yêu cầu. Không được trả
 
         # Call LLM with streaming
         stream = await client.chat.completions.create(
-            model="gemini-2.5-flash-lite",
+            model=settings.LLM_MODEL,
+            # model="gemini-2.5-flash-lite",
             messages=[
                 {"role": "system", "content": ENHANCE_JOB_PROMPT},
                 {"role": "user", "content": user_message}

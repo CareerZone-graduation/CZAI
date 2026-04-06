@@ -258,8 +258,8 @@ Hãy phân tích, so sánh và xếp hạng các ứng viên trên cho vị trí
     async def stream_generator():
         try:
             stream = await client.chat.completions.create(
-                # model=settings.LLM_MODEL,
-                model="gemini-2.5-flash-lite",
+                model=settings.LLM_MODEL,
+                # model="gemini-2.5-flash-lite",
                 messages=messages,
                 stream=True,
             )
