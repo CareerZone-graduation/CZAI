@@ -24,6 +24,108 @@ class EnhanceJobRequest(BaseModel):
     requirements: Optional[str] = None
     benefits: Optional[str] = None
 
+FIELD_MAP = {
+    "TITLE": "title",
+    "DESCRIPTION": "description",
+    "REQUIREMENTS": "requirements",
+    "BENEFITS": "benefits"
+}
+
+
+class EnhanceJobXmlStreamParser:
+    def __init__(self):
+        self.current_field = None
+        self.current_tag = None
+        self.buffer = ""
+        self.field_content = ""
+
+    def feed(self, chunk: str):
+        self.buffer += chunk
+
+        while True:
+            if self.current_field is None:
+                opening_tag = self._find_opening_tag()
+                if not opening_tag:
+                    self.buffer = self._opening_tag_suffix()
+                    break
+
+                tag, field, index, tag_length = opening_tag
+                self.buffer = self.buffer[index + tag_length:].lstrip("\r\n")
+                self.current_tag = tag
+                self.current_field = field
+                self.field_content = ""
+                yield "field_start", {"field": field}
+                continue
+
+            close_tag = f"</{self.current_tag}>"
+            close_index = self.buffer.find(close_tag)
+
+            if close_index != -1:
+                delta = self.buffer[:close_index]
+                if delta:
+                    self.field_content += delta
+                    yield "field_delta", {
+                        "field": self.current_field,
+                        "delta": delta
+                    }
+
+                yield "field_complete", {
+                    "field": self.current_field,
+                    "content": self.field_content.strip()
+                }
+
+                self.buffer = self.buffer[close_index + len(close_tag):]
+                self.current_field = None
+                self.current_tag = None
+                self.field_content = ""
+                continue
+
+            # Keep enough trailing characters to detect a closing tag split
+            # across chunks, but stream the safe prefix immediately.
+            tail_length = len(close_tag) - 1
+            if len(self.buffer) > tail_length:
+                delta = self.buffer[:-tail_length]
+                self.field_content += delta
+                yield "field_delta", {
+                    "field": self.current_field,
+                    "delta": delta
+                }
+                self.buffer = self.buffer[-tail_length:]
+                continue
+
+            break
+
+    def _find_opening_tag(self):
+        matches = []
+        for tag, field in FIELD_MAP.items():
+            open_tag = f"<{tag}>"
+            index = self.buffer.find(open_tag)
+            if index != -1:
+                matches.append((index, tag, field, len(open_tag)))
+
+        if not matches:
+            return None
+
+        index, tag, field, tag_length = min(matches, key=lambda item: item[0])
+        return tag, field, index, tag_length
+
+    def _opening_tag_suffix(self):
+        suffix = ""
+        for tag in FIELD_MAP:
+            open_tag = f"<{tag}>"
+            max_length = min(len(self.buffer), len(open_tag) - 1)
+            for length in range(1, max_length + 1):
+                candidate = self.buffer[-length:]
+                if open_tag.startswith(candidate) and length > len(suffix):
+                    suffix = candidate
+        return suffix
+
+
+def parse_enhance_job_xml_chunks(chunks):
+    parser = EnhanceJobXmlStreamParser()
+    for chunk in chunks:
+        yield from parser.feed(chunk)
+
 ENHANCE_JOB_PROMPT = """Bạn là chuyên gia tuyển dụng chuyên nghiệp. Nhiệm vụ của bạn là VIẾT LẠI và MỞ RỘNG nội dung tin tuyển dụng từ các ghi chú ngắn gọn hoặc nội dung sơ khai thành văn bản chuyên nghiệp, chi tiết theo phong cách của các trang tuyển dụng hàng đầu như LinkedIn, Indeed, TopCV.
 
 ⚠️ QUAN TRỌNG: Input có thể là:
@@ -131,16 +233,7 @@ Hãy viết lại theo định dạng XML đã yêu cầu. Không được trả
             timeout=90.0
         )
 
-        # State for parsing XML markers
-        current_field = None
-        field_buffer = ""
-        field_order = ["title", "description", "requirements", "benefits"]
-        field_map = {
-            "TITLE": "title",
-            "DESCRIPTION": "description",
-            "REQUIREMENTS": "requirements",
-            "BENEFITS": "benefits"
-        }
+        parser = EnhanceJobXmlStreamParser()
 
         async for chunk in stream:
             if not chunk.choices:
@@ -151,41 +244,9 @@ Hãy viết lại theo định dạng XML đã yêu cầu. Không được trả
                 continue
 
             content = delta.content
-            field_buffer += content
-
-            # Check for opening tags
-            for tag, field in field_map.items():
-                open_tag = f"<{tag}>"
-                if open_tag in field_buffer and current_field is None:
-                    # Found opening tag
-                    current_field = field
-                    field_buffer = field_buffer.split(open_tag, 1)[1]
-
-                    # Emit field_start event
-                    yield f"event: field_start\n"
-                    yield f"data: {json.dumps({'field': field})}\n\n"
-                    break
-
-            # Check for closing tags
-            if current_field:
-                close_tag = f"</{field_map[current_field.upper()].upper()}>"
-                if close_tag in field_buffer:
-                    # Found closing tag - extract content
-                    field_content = field_buffer.split(close_tag)[0].strip()
-
-                    # Emit field_complete event
-                    yield f"event: field_complete\n"
-                    yield f"data: {json.dumps({'field': current_field, 'content': field_content})}\n\n"
-
-                    # Reset for next field
-                    field_buffer = field_buffer.split(close_tag, 1)[1] if close_tag in field_buffer else ""
-                    current_field = None
-                else:
-                    # Still within field - emit delta
-                    # Buffer chars if we suspect a closing tag is forming to prevent glitchy text
-                    if "<" not in field_buffer[-15:]:
-                        yield f"event: field_delta\n"
-                        yield f"data: {json.dumps({'field': current_field, 'delta': content})}\n\n"
+            for event, payload in parser.feed(content):
+                yield f"event: {event}\n"
+                yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
         # Emit done event
         yield f"event: done\n"
