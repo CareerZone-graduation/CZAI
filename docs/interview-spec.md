@@ -184,4 +184,3 @@ Client                    CareerZoneAI              Simli AI
 | INT-002  | Persist session vào Redis            | Low      |
 | INT-003  | Streaming LLM (word-by-word)         | High     |
 | INT-004  | Đánh giá ứng viên sau phỏng vấn      | High     |
-| INT-005  | Upload recording lên Cloudinary      | Medium   |

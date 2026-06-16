@@ -209,9 +209,6 @@ Tất cả env vars được load qua `app/core/config.py` (pydantic-settings):
 | `ASSEMBLYAI_API_KEY`| AssemblyAI STT API key               |
 | `SIMLI_API_KEY`     | Simli AI avatar API key              |
 | `GEMINI_API_KEY`    | Google Gemini embedding API key      |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name           |
-| `CLOUDINARY_API_KEY`    | Cloudinary API key              |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret           |
 | `MONGO_URI`         | MongoDB connection string            |
 
 ### 3.2 Optional (có default)
