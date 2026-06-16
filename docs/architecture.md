@@ -66,7 +66,6 @@ app/services/
   ├── llm_service.py          (OpenAI/GitHub Models)
   ├── tts_service.py          (ElevenLabs SDK)
   ├── stt_service.py          (AssemblyAI REST)
-  ├── cloudinary_service.py   (Cloudinary)
   └── recommendation/
        ├── model_manager.py   (RecommendationEngine singleton)
        ├── feature_engineering.py
@@ -113,7 +112,6 @@ Khi shutdown:
 | LightFM training             | `loop.run_in_executor(ThreadPoolExecutor)` |
 | DB trong training threads    | `get_sync_db()` (Motor `.delegate` → PyMongo sync) |
 | APScheduler jobs             | `AsyncIOScheduler` + executor             |
-| Cloudinary upload            | `run_in_executor`                        |
 
 ---
 
@@ -147,7 +145,6 @@ Xem chi tiết trong [data-models.md](./data-models.md#environment-variables).
 | Simli AI         | REST (`requests`)            | Avatar session token + ICE       |
 | Google Gemini    | REST (`httpx`)               | Text embedding (1536-dim)        |
 | MongoDB Atlas    | `motor` (async Motor)         | Database + $vectorSearch         |
-| Cloudinary       | `cloudinary` SDK             | Audio storage                    |
 | LightFM          | In-process Python lib        | Recommendation model             |
 
 ---
