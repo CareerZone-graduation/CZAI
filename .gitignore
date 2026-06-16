@@ -214,6 +214,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-.github
 .claude/settings.local.json
 .serena
